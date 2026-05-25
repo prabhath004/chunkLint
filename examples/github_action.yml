@@ -1,0 +1,32 @@
+name: ChunkLint
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "scripts/generate_chunks.py"
+      - "chunklint.yml"
+
+jobs:
+  chunklint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install chunklint
+          pip install -r requirements.txt
+
+      - name: Generate chunks
+        run: python scripts/generate_chunks.py
+
+      - name: Run ChunkLint
+        run: chunklint scan chunks.json --fail-on high
+

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "chunk_1",
+    "text": "Refund Policy. Customers can request refunds within 30 days.",
+    "source": "refund_policy.pdf",
+    "metadata": {
+      "page": 2,
+      "heading": "Refund Policy"
+    }
+  },
+  {
+    "id": "chunk_2",
+    "text": "except enterprise customers may request refunds within 90 days.",
+    "source": "refund_policy.pdf",
+    "metadata": {
+      "page": 2,
+      "heading": "Refund Policy"
+    }
+  },
+  {
+    "id": "chunk_3",
+    "text": "| Pro | $29 |\n| Enterprise | Contact sales |",
+    "source": "pricing.md",
+    "metadata": {}
+  }
+]
+

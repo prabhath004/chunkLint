@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Optional
 
 import typer
 from rich.console import Console
@@ -24,12 +24,12 @@ def scan(
         str,
         typer.Option("--format", help="Output format: text or json."),
     ] = "text",
-    out: Annotated[Path | None, typer.Option("--out", help="Write JSON report to a file.")] = None,
+    out: Annotated[Optional[Path], typer.Option("--out", help="Write JSON report to a file.")] = None,
     fail_on: Annotated[
-        str | None,
+        Optional[str],
         typer.Option("--fail-on", help="Fail if issues at or above severity exist."),
     ] = None,
-    config: Annotated[Path | None, typer.Option("--config", help="Path to chunklint.yml.")] = None,
+    config: Annotated[Optional[Path], typer.Option("--config", help="Path to chunklint.yml.")] = None,
     quiet: Annotated[bool, typer.Option("--quiet", help="Suppress terminal output.")] = False,
 ) -> None:
     """Scan exported chunks."""
@@ -91,4 +91,3 @@ def rules() -> None:
 
 if __name__ == "__main__":
     app()
-
