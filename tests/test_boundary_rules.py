@@ -1,4 +1,5 @@
 from chunklint import lint
+from chunklint.config import default_config
 
 
 def test_starts_mid_sentence_connector():
@@ -141,6 +142,44 @@ def test_trailing_connector_word_is_mid_sentence():
     )
 
     assert "ends_mid_sentence" in {issue.rule_id for issue in report.issues}
+
+
+def test_start_boundary_words_are_configurable():
+    config = default_config()
+    config.rules["starts_mid_sentence"].model_extra["connector_words"] = ["meanwhile"]
+
+    report = lint(
+        [
+            {
+                "id": "chunk_1",
+                "text": "meanwhile customers are still waiting for approval.",
+                "source": "refund_policy.md",
+                "metadata": {"heading": "Refund Policy"},
+            }
+        ],
+        config=config,
+    )
+
+    assert "starts_mid_sentence" in {issue.rule_id for issue in report.issues}
+
+
+def test_start_ignore_words_are_configurable():
+    config = default_config()
+    config.rules["starts_mid_sentence"].model_extra["ignore_start_words"] = ["foobar"]
+
+    report = lint(
+        [
+            {
+                "id": "chunk_1",
+                "text": "foobar setup instructions require administrators to rotate credentials.",
+                "source": "setup.md",
+                "metadata": {"heading": "Foobar setup"},
+            }
+        ],
+        config=config,
+    )
+
+    assert "starts_mid_sentence" not in {issue.rule_id for issue in report.issues}
 
 
 def test_table_start_is_not_mid_sentence():
