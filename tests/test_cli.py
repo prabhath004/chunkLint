@@ -53,7 +53,7 @@ def test_cli_scan_writes_json_report(tmp_path):
 def test_cli_init_creates_config(tmp_path):
     path = tmp_path / "chunklint.yml"
 
-    result = runner.invoke(app, ["init", "--path", str(path)])
+    result = runner.invoke(app, ["init", str(path)])
 
     assert result.exit_code == 0
     assert "missing_text" in path.read_text()
