@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from chunklint.utils.severity import normalize_severity
 
@@ -17,6 +17,8 @@ class Thresholds(BaseModel):
 
 
 class RuleConfig(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     enabled: bool = True
     severity: str | None = None
 
@@ -47,14 +49,68 @@ class ChunkLintConfig(BaseModel):
             return normalize_severity(default)
         return normalize_severity(configured)
 
+    def rule_option(self, rule_id: str, key: str, default: Any) -> Any:
+        rule = self.rules.get(rule_id)
+        if rule is None:
+            return default
+        extra = rule.model_extra or {}
+        return extra.get(key, default)
+
 
 DEFAULT_RULES: dict[str, dict[str, Any]] = {
     "missing_text": {"enabled": True, "severity": "high"},
     "missing_id": {"enabled": True, "severity": "medium"},
     "missing_source": {"enabled": True, "severity": "medium"},
     "missing_heading": {"enabled": True, "severity": "medium"},
-    "starts_mid_sentence": {"enabled": True, "severity": "high"},
-    "ends_mid_sentence": {"enabled": True, "severity": "medium"},
+    "starts_mid_sentence": {
+        "enabled": True,
+        "severity": "high",
+        "connector_words": [
+            "also",
+            "although",
+            "and",
+            "because",
+            "but",
+            "except",
+            "however",
+            "or",
+            "that",
+            "then",
+            "therefore",
+            "which",
+        ],
+        "ignore_start_words": [
+            "api",
+            "asyncio",
+            "aws",
+            "azure",
+            "ebay",
+            "github",
+            "ios",
+            "ipad",
+            "iphone",
+            "javascript",
+            "langchain",
+            "llamaindex",
+            "macos",
+            "mongodb",
+            "node.js",
+            "npm",
+            "openai",
+            "postgres",
+            "pytest",
+            "python",
+            "qdrant",
+            "sqlite",
+            "typescript",
+            "weaviate",
+        ],
+    },
+    "ends_mid_sentence": {
+        "enabled": True,
+        "severity": "medium",
+        "allow_colon_endings": True,
+    },
     "too_short": {"enabled": True, "severity": "low"},
     "too_long": {"enabled": True, "severity": "medium"},
     "broken_markdown_table": {"enabled": True, "severity": "high"},
@@ -69,7 +125,7 @@ def default_config() -> ChunkLintConfig:
 
 
 def default_config_dict() -> dict[str, Any]:
-    return default_config().model_dump(mode="json")
+    return default_config().model_dump(mode="json", exclude_none=True)
 
 
 def default_config_yaml() -> str:
@@ -87,7 +143,7 @@ def load_config(path: str | Path | None = None) -> ChunkLintConfig:
         raise ValueError(f"Could not read config file {config_path}: {exc}") from exc
     except yaml.YAMLError as exc:
         raise ValueError(f"Invalid YAML in config file {config_path}: {exc}") from exc
-    merged = _deep_merge(config.model_dump(mode="json"), raw)
+    merged = _deep_merge(config.model_dump(mode="json", exclude_none=True), raw)
     return ChunkLintConfig.model_validate(merged)
 
 
@@ -111,4 +167,3 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
         else:
             result[key] = value
     return result
-

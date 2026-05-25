@@ -6,6 +6,8 @@ WORD_RE = re.compile(r"\b[\w'-]+\b")
 TABLE_SEPARATOR_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$")
 LIST_MARKER_RE = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)")
 URL_RE = re.compile(r"https?://\S+$")
+HTML_TAG_RE = re.compile(r"^\s*</?[a-zA-Z][^>]*>")
+KEY_VALUE_RE = re.compile(r"^\s*[\w .()/-]{1,48}:\s+\S")
 
 
 def word_count(text: str) -> int:
@@ -37,6 +39,22 @@ def starts_like_list_item(line: str) -> bool:
     return LIST_MARKER_RE.match(line) is not None
 
 
+def looks_like_heading_or_label(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if stripped.startswith("#"):
+        return True
+    words = word_count(stripped)
+    if words <= 8 and stripped.endswith(":"):
+        return True
+    if KEY_VALUE_RE.match(stripped):
+        return True
+    if words <= 8 and not re.search(r"[.!?]", stripped):
+        return True
+    return False
+
+
 def is_probably_code_or_table_start(text: str) -> bool:
     lines = non_empty_lines(text)
     if not lines:
@@ -46,6 +64,7 @@ def is_probably_code_or_table_start(text: str) -> bool:
         first.startswith("```")
         or first.startswith("|")
         or first.startswith("#")
+        or HTML_TAG_RE.match(first) is not None
         or starts_like_list_item(first)
         or first.startswith((">", "    "))
     )
@@ -60,6 +79,7 @@ def is_ignorable_sentence_end(text: str) -> bool:
         last.startswith("|")
         or starts_like_list_item(last)
         or last.startswith("```")
+        or HTML_TAG_RE.match(last) is not None
         or URL_RE.search(last) is not None
     )
 
@@ -70,3 +90,6 @@ def strip_leading_markup(text: str) -> str:
     stripped = re.sub(r"^(?:[-*+]\s+|\d+[.)]\s+)", "", stripped)
     return stripped.lstrip()
 
+
+def strip_wrapping_openers(text: str) -> str:
+    return (text or "").lstrip(" \t\r\n\"'([{")
