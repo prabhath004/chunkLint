@@ -73,8 +73,16 @@ Covers metadata and identity rules:
 Covers chunk boundary heuristics:
 
 - Connector-word starts such as `except ...` trigger `starts_mid_sentence`.
+- Continuation punctuation such as `, except ...` triggers `starts_mid_sentence`.
+- Valid discourse starts such as `However, ...` are not flagged.
+- Lowercase product/tool starts such as `iPhone ...` and `npm ...` are not flagged.
+- Short lowercase heading lines are not flagged as sentence fragments.
 - Chunks without sentence-ending punctuation trigger `ends_mid_sentence`.
+- Continuation endings such as a trailing comma or trailing `and` trigger
+  `ends_mid_sentence`.
+- Colon-ended labels such as `Required documents:` are allowed.
 - Markdown table starts are not incorrectly flagged as mid-sentence starts.
+- Connector words and ignored start words can be customized through rule config.
 
 ### `tests/test_table_rule.py`
 

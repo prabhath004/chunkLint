@@ -31,9 +31,17 @@ CONNECTOR_WORDS = {
 
 RELATIVE_START_WORDS = {"that", "which", "whose", "whom", "where", "when"}
 COORDINATING_START_WORDS = {"and", "but", "or", "nor", "so", "yet"}
-SUBORDINATING_START_WORDS = {"although", "because", "except", "though", "unless", "whereas", "while"}
+SUBORDINATING_START_WORDS = {
+    "although",
+    "because",
+    "except",
+    "though",
+    "unless",
+    "whereas",
+    "while",
+}
 DISCOURSE_MARKERS = {"also", "however", "then", "therefore"}
-CONTINUATION_PUNCTUATION = {",", ";", ":", ")", "]", "}", "-", "–", "—"}
+CONTINUATION_PUNCTUATION = {",", ";", ":", ")", "]", "}", "-", "\u2013", "\u2014"}
 END_PUNCTUATION = set(".!?)]}`\"'")
 TRAILING_CONTINUATION_WORDS = {
     "and",
@@ -65,8 +73,7 @@ class StartsMidSentenceRule(Rule):
         lines = non_empty_lines(chunk.text)
         if not lines or is_probably_code_or_table_start(chunk.text):
             return []
-        if looks_like_heading_or_label(lines[0]):
-            return []
+        heading_like = looks_like_heading_or_label(lines[0])
 
         text = strip_wrapping_openers(strip_leading_markup(chunk.text))
         if not text:
@@ -107,6 +114,8 @@ class StartsMidSentenceRule(Rule):
                     fix="Use sentence-aware splitting or increase overlap.",
                 )
             ]
+        if heading_like:
+            return []
         if _should_flag_lowercase_start(first_word, text):
             return [
                 self.issue(
@@ -134,7 +143,7 @@ class EndsMidSentenceRule(Rule):
         stripped = text.rstrip()
         if stripped[-1] == ":" and context.config.rule_option(self.id, "allow_colon_endings", True):
             return []
-        if stripped[-1] in {",", ";", "-", "–", "—"}:
+        if stripped[-1] in {",", ";", "-", "\u2013", "\u2014"}:
             return [
                 self.issue(
                     chunk,

@@ -7,6 +7,10 @@ problems that usually show up later as bad retrieval, incomplete answers, or
 expensive re-indexing work. It is intentionally simple: no LLM calls, no
 embeddings, no eval dataset, and no vector database connection required.
 
+The rules are deterministic heuristics. They are built to catch likely chunking
+mistakes with low runtime cost, but they are not a substitute for a labeled
+retrieval-quality benchmark.
+
 ## Why It Exists
 
 A normal RAG pipeline often moves directly from splitting to embedding:
@@ -310,6 +314,24 @@ rules:
   starts_mid_sentence:
     enabled: true
     severity: high
+    connector_words:
+      - except
+      - however
+      - therefore
+      - because
+      - although
+      - which
+      - that
+      - and
+      - but
+      - or
+      - also
+      - then
+    ignore_start_words:
+      - iphone
+      - ebay
+      - npm
+      - openai
 
   too_short:
     enabled: true
@@ -330,8 +352,8 @@ Full rule and config reference: [docs/rules.md](docs/rules.md).
 | `missing_id` | medium | chunk | Flags chunks without stable IDs. |
 | `missing_source` | medium | chunk | Flags chunks without traceable source metadata. |
 | `missing_heading` | medium | chunk | Flags chunks without heading/title/section metadata. |
-| `starts_mid_sentence` | high | chunk | Flags likely mid-sentence starts. |
-| `ends_mid_sentence` | medium | chunk | Flags likely mid-sentence endings. |
+| `starts_mid_sentence` | high | chunk | Flags likely mid-sentence starts using continuation punctuation, configurable connector words, lowercase starts, and false-positive exclusions for headings, code, tables, and known product/tool names. |
+| `ends_mid_sentence` | medium | chunk | Flags likely mid-sentence endings using missing punctuation, continuation punctuation, and trailing connector words while skipping headings, tables, code, URLs, and colon labels. |
 | `too_short` | low | chunk | Flags chunks below `min_words`; raises to medium when heading context is missing. |
 | `too_long` | medium | chunk | Flags chunks above `max_words`. |
 | `broken_markdown_table` | high | chunk | Flags table fragments without markdown separator/header context. |
@@ -447,7 +469,7 @@ The `tests/` folder is the safety net for the first release:
 | `tests/test_cli.py` | CLI exit codes, `--fail-on`, JSON report writing, and config initialization. |
 | `tests/test_adapters.py` | LangChain and LlamaIndex adapter normalization, linting, and export helpers. |
 | `tests/test_missing_rules.py` | `missing_text`, `missing_id`, `missing_source`, and `missing_heading`. |
-| `tests/test_boundary_rules.py` | Mid-sentence start/end detection and markdown table-start exclusions. |
+| `tests/test_boundary_rules.py` | Mid-sentence start/end detection, stronger continuation signals, false-positive exclusions, and boundary-rule config options. |
 | `tests/test_table_rule.py` | Broken markdown table detection and valid table pass-through. |
 | `tests/test_code_rule.py` | Unclosed markdown code-fence detection. |
 | `tests/test_duplicate_rule.py` | Near-duplicate detection across chunks. |

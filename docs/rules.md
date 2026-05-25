@@ -3,6 +3,12 @@
 ChunkLint rules are deterministic static checks. Chunk-scoped rules inspect one
 chunk at a time. Cross-chunk rules inspect the full chunk list.
 
+The boundary checks are production-oriented heuristics, not certified accuracy
+claims. To honestly claim 90-95% precision or recall, the project needs a
+labeled corpus of real chunks and a repeatable evaluation script. Until then,
+the rules are designed to be transparent, configurable, and conservative about
+common false positives.
+
 ## Config Loading
 
 ChunkLint loads `chunklint.yml` or `chunklint.yaml` from the current working
@@ -59,9 +65,48 @@ rules:
   starts_mid_sentence:
     enabled: true
     severity: high
+    connector_words:
+      - also
+      - although
+      - and
+      - because
+      - but
+      - except
+      - however
+      - or
+      - that
+      - then
+      - therefore
+      - which
+    ignore_start_words:
+      - api
+      - asyncio
+      - aws
+      - azure
+      - ebay
+      - github
+      - ios
+      - ipad
+      - iphone
+      - javascript
+      - langchain
+      - llamaindex
+      - macos
+      - mongodb
+      - node.js
+      - npm
+      - openai
+      - postgres
+      - pytest
+      - python
+      - qdrant
+      - sqlite
+      - typescript
+      - weaviate
   ends_mid_sentence:
     enabled: true
     severity: medium
+    allow_colon_endings: true
   too_short:
     enabled: true
     severity: low
@@ -131,13 +176,46 @@ Flags chunks that begin with connector words such as `except`, `however`,
 or `then`. It also flags lowercase starts unless the chunk appears to be code,
 a table, a heading, a quote, or a list item.
 
+The rule now uses multiple signals:
+
+- continuation punctuation at the start, such as `,`, `;`, `)`, or `-`
+- configurable connector words
+- stronger treatment for relative and coordinating starts such as `which`,
+  `that`, `and`, `but`, or `or`
+- lowercase starts with false-positive exclusions
+- short heading/label detection
+- markdown table, code fence, HTML tag, quote, and list-item exclusions
+- configurable ignored start words for corpus-specific terms such as `iPhone`,
+  `npm`, or `OpenAI`
+
+Custom connector and ignored words:
+
+```yaml
+rules:
+  starts_mid_sentence:
+    enabled: true
+    severity: high
+    connector_words:
+      - except
+      - which
+      - meanwhile
+    ignore_start_words:
+      - iphone
+      - ebay
+      - yourproduct
+```
+
 ### `ends_mid_sentence`
 
 Severity: medium.
 
-Flags chunks that do not end with sentence-ending punctuation. It skips common
-cases where punctuation is not expected, such as markdown table rows, list
-items, code fences, and URLs.
+Flags chunks that do not end with sentence-ending punctuation. It also catches
+strong continuation endings, such as trailing commas, semicolons, dashes, or
+connector words like `and`, `because`, `which`, and `while`.
+
+It skips common cases where punctuation is not expected, such as markdown table
+rows, list items, code fences, URLs, headings, short labels, HTML tags, and
+colon-ended intro labels when `allow_colon_endings` is true.
 
 ### `too_short`
 
@@ -203,4 +281,3 @@ rules:
     enabled: true
     severity: medium
 ```
-

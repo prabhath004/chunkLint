@@ -18,6 +18,21 @@ def test_starts_mid_sentence_connector():
     assert issue.severity == "high"
 
 
+def test_connector_start_is_flagged_even_when_first_line_is_short():
+    report = lint(
+        [
+            {
+                "id": "chunk_2",
+                "text": "except enterprise customers\nmay request refunds within 90 days.",
+                "source": "refund_policy.md",
+                "metadata": {"heading": "Refund Policy"},
+            }
+        ]
+    )
+
+    assert "starts_mid_sentence" in {issue.rule_id for issue in report.issues}
+
+
 def test_starts_mid_sentence_continuation_punctuation():
     report = lint(
         [
