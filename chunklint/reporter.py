@@ -208,7 +208,7 @@ def print_report(
 
 def print_gate_report(
     report: LintReport,
-    threshold: str,
+    threshold: str | list[str],
     *,
     console: Console | None = None,
     max_issues: int = 20,
@@ -218,12 +218,14 @@ def print_gate_report(
     elapsed: float | None = None,
 ) -> None:
     console = console or Console()
-    threshold = normalize_severity(threshold)
+    thresholds = _normalize_thresholds(threshold)
+    threshold_set = set(thresholds)
+    threshold_label = ", ".join(thresholds)
     blocking_issues = [
-        issue for issue in report.issues if normalize_severity(issue.severity) == threshold
+        issue for issue in report.issues if normalize_severity(issue.severity) in threshold_set
     ]
     non_blocking_issues = [
-        issue for issue in report.issues if normalize_severity(issue.severity) != threshold
+        issue for issue in report.issues if normalize_severity(issue.severity) not in threshold_set
     ]
     blocking_report = _report_from_issues(report.chunks_scanned, blocking_issues)
     blocking_root_causes = group_root_causes(blocking_issues)
@@ -232,7 +234,7 @@ def print_gate_report(
     console.print()
     _print_gate_summary_table(
         report,
-        selected_severity=threshold,
+        thresholds=thresholds,
         blocking_issues=blocking_issues,
         non_blocking_issues=non_blocking_issues,
         console=console,
@@ -244,13 +246,16 @@ def print_gate_report(
 
     if not blocking_issues:
         console.print()
-        console.print(f"[green]No {threshold} findings.[/green]")
+        console.print(f"[green]No {threshold_label} findings.[/green]")
         console.print("[dim]Run without --fail-on for the full diagnostic report.[/dim]")
         _print_elapsed(console, elapsed, report.chunks_scanned)
         return
 
     console.print()
-    console.print(f"[bold]{threshold.title()} Root Causes[/bold]")
+    if len(thresholds) == 1:
+        console.print(f"[bold]{thresholds[0].title()} Root Causes[/bold]")
+    else:
+        console.print(f"[bold]Blocking Root Causes ({threshold_label})[/bold]")
     _print_root_cause_table(blocking_root_causes, console=console)
 
     recommendations = build_recommendations(blocking_issues)
@@ -340,7 +345,7 @@ def _print_raw_issues(report: LintReport, *, console: Console, max_issues: int) 
 def _print_gate_summary_table(
     report: LintReport,
     *,
-    selected_severity: str,
+    thresholds: list[str],
     blocking_issues: list[Issue],
     non_blocking_issues: list[Issue],
     console: Console,
@@ -350,7 +355,8 @@ def _print_gate_summary_table(
     table.add_column("Field")
     table.add_column("Value")
     table.add_row("Gate result", result)
-    table.add_row("Selected severity", selected_severity)
+    severity_label = "Selected severity" if len(thresholds) == 1 else "Selected severities"
+    table.add_row(severity_label, ", ".join(thresholds))
     table.add_row("Chunks scanned", str(report.chunks_scanned))
     table.add_row(
         "All findings",
@@ -644,6 +650,23 @@ def _has_rule(issues: list[Issue], rule_id: str) -> bool:
 
 def _compact(text: str, width: int = 120) -> str:
     return shorten(" ".join(text.split()), width=width, placeholder="...")
+
+
+def _normalize_thresholds(threshold: str | list[str]) -> list[str]:
+    if isinstance(threshold, str):
+        raw = [threshold]
+    else:
+        raw = list(threshold)
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for value in raw:
+        sev = normalize_severity(value)
+        if sev not in seen:
+            seen.add(sev)
+            normalized.append(sev)
+    if not normalized:
+        raise ValueError("At least one severity is required.")
+    return sorted(normalized, key=lambda sev: SEVERITY_RANK[sev], reverse=True)
 
 
 def _format_elapsed(elapsed: float) -> str:

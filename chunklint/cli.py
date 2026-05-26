@@ -31,7 +31,13 @@ def scan(
     ] = None,
     fail_on: Annotated[
         Optional[str],
-        typer.Option("--fail-on", help="Fail if issues with this exact severity exist."),
+        typer.Option(
+            "--fail-on",
+            help=(
+                "Fail if issues with this exact severity exist. Accepts a comma "
+                "list (e.g. 'high,medium') to gate on multiple severities."
+            ),
+        ),
     ] = None,
     config: Annotated[
         Optional[Path],
@@ -60,7 +66,7 @@ def scan(
         output_format = output_format.lower().strip()
         if output_format not in {"text", "json"}:
             raise ValueError("--format must be text or json.")
-        selected_severity = normalize_severity(fail_on) if fail_on is not None else None
+        selected_severities = _parse_fail_on(fail_on) if fail_on is not None else None
 
         chunks = load_chunks(path)
         start = time.perf_counter()
@@ -76,10 +82,10 @@ def scan(
                 console.file.write(json_report + "\n")
                 console.file.flush()
             else:
-                if selected_severity is not None:
+                if selected_severities is not None:
                     print_gate_report(
                         report,
-                        selected_severity,
+                        selected_severities,
                         console=console,
                         verbose=verbose,
                         raw=raw,
@@ -98,9 +104,9 @@ def scan(
                         elapsed=elapsed,
                     )
 
-        if selected_severity is not None and _has_issues_with_severity(
+        if selected_severities is not None and _has_issues_with_severities(
             report.issues,
-            selected_severity,
+            selected_severities,
         ):
             raise typer.Exit(1)
     except typer.Exit:
@@ -137,10 +143,27 @@ def rules() -> None:
         console.print(f"{severity.upper():7} {rule_id:24} {scope}")
 
 
-def _has_issues_with_severity(issues, severity: str | None) -> bool:
-    if severity is None:
+def _parse_fail_on(value: str) -> list[str]:
+    tokens = [token.strip() for token in value.split(",") if token.strip()]
+    if not tokens:
+        raise ValueError(
+            "--fail-on requires at least one severity. Choose from: high, medium, low."
+        )
+    seen: set[str] = set()
+    normalized: list[str] = []
+    for token in tokens:
+        severity = normalize_severity(token)
+        if severity not in seen:
+            seen.add(severity)
+            normalized.append(severity)
+    return normalized
+
+
+def _has_issues_with_severities(issues, severities: list[str]) -> bool:
+    if not severities:
         return False
-    return any(normalize_severity(issue.severity) == severity for issue in issues)
+    severity_set = set(severities)
+    return any(normalize_severity(issue.severity) in severity_set for issue in issues)
 
 
 if __name__ == "__main__":
