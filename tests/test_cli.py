@@ -36,18 +36,18 @@ def test_cli_fail_on_prints_gate_status(tmp_path):
     assert result.exit_code == 1
     assert "ChunkLint Gate" in result.output
     assert "ChunkLint Report" not in result.output
-    assert "Status: FAILED" in result.output
-    assert "Threshold: high" in result.output
-    assert "Blocking findings: 2 (2 high)" in result.output
-    assert "Lower-severity findings hidden: 4 (2 medium, 2 low)" in result.output
-    assert "Hidden lower-severity details:" in result.output
+    assert "ChunkLint Gate: failed" in result.output
+    assert "Threshold: high (blocks high)" in result.output
+    assert "Blocking: 2 findings (2 high)" in result.output
+    assert "Ignored below threshold:" in result.output
+    assert "- 4 findings (2 medium, 2 low)" in result.output
     assert "Shown findings:" not in result.output
     assert "Raw findings:" not in result.output
     assert "Blocking root causes:" in result.output
     assert "Markdown tables" in result.output
     assert "Sentence boundaries" in result.output
     blocking_section = result.output.split("Blocking root causes:", 1)[1]
-    blocking_section = blocking_section.split("Blocking next steps:", 1)[0]
+    blocking_section = blocking_section.split("Next:", 1)[0]
     assert "Chunk size" not in blocking_section
     assert "Missing retrieval context" not in blocking_section
 
@@ -58,10 +58,10 @@ def test_cli_fail_on_medium_hides_low_only(tmp_path):
     result = runner.invoke(app, ["scan", str(path), "--fail-on", "medium"])
 
     assert result.exit_code == 1
-    assert "Threshold: medium" in result.output
-    assert "Blocking findings: 4 (2 high, 2 medium)" in result.output
-    assert "Lower-severity findings hidden: 2 (2 low)" in result.output
-    assert "Hidden lower-severity details: Chunk size (+2 lower)" in result.output
+    assert "Threshold: medium (blocks high, medium)" in result.output
+    assert "Blocking: 4 findings (2 high, 2 medium)" in result.output
+    assert "- 2 findings (2 low)" in result.output
+    assert "- Chunk size (+2 lower)" in result.output
     assert "Chunk size" in result.output
     assert "Missing retrieval" in result.output
     assert "context" in result.output
@@ -73,9 +73,9 @@ def test_cli_fail_on_low_blocks_everything(tmp_path):
     result = runner.invoke(app, ["scan", str(path), "--fail-on", "low"])
 
     assert result.exit_code == 1
-    assert "Threshold: low" in result.output
-    assert "Blocking findings: 6 (2 high, 2 medium, 2 low)" in result.output
-    assert "Lower-severity findings hidden:" not in result.output
+    assert "Threshold: low (blocks high, medium, low)" in result.output
+    assert "Blocking: 6 findings (2 high, 2 medium, 2 low)" in result.output
+    assert "Ignored below threshold:" not in result.output
     assert "Chunk size" in result.output
     assert "Missing retrieval" in result.output
     assert "context" in result.output
@@ -100,9 +100,9 @@ def test_cli_fail_on_passes_with_only_lower_severity_findings(tmp_path):
 
     assert result.exit_code == 0
     assert "ChunkLint Gate" in result.output
-    assert "Status: PASSED" in result.output
-    assert "Blocking findings: 0" in result.output
-    assert "Lower-severity findings hidden:" in result.output
+    assert "ChunkLint Gate: passed" in result.output
+    assert "Blocking: 0 findings" in result.output
+    assert "Ignored below threshold:" in result.output
     assert "No findings at or above high." in result.output
 
 
