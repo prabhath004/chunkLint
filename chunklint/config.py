@@ -111,6 +111,7 @@ DEFAULT_RULES: dict[str, dict[str, Any]] = {
         "severity": "medium",
         "allow_colon_endings": True,
     },
+    "broken_chunk_boundary": {"enabled": True, "severity": "high"},
     "too_short": {"enabled": True, "severity": "low"},
     "too_long": {"enabled": True, "severity": "medium"},
     "broken_markdown_table": {"enabled": True, "severity": "high"},

@@ -1,4 +1,8 @@
-from chunklint.rules.boundary import EndsMidSentenceRule, StartsMidSentenceRule
+from chunklint.rules.boundary import (
+    BrokenChunkBoundaryRule,
+    EndsMidSentenceRule,
+    StartsMidSentenceRule,
+)
 from chunklint.rules.code_block import BrokenCodeBlockRule
 from chunklint.rules.duplicate import NearDuplicateRule
 from chunklint.rules.markdown_table import BrokenMarkdownTableRule
@@ -23,9 +27,9 @@ DEFAULT_RULES = [
 ]
 
 DEFAULT_CROSS_CHUNK_RULES = [
+    BrokenChunkBoundaryRule(),
     NearDuplicateRule(),
     PdfNoiseRule(),
 ]
 
 ALL_RULES = [*DEFAULT_RULES, *DEFAULT_CROSS_CHUNK_RULES]
-

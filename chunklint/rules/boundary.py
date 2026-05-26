@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 
 from chunklint.models import Chunk, Issue, LintContext
-from chunklint.rules.base import Rule
+from chunklint.rules.base import CrossChunkRule, Rule
 from chunklint.utils.text import (
     is_ignorable_sentence_end,
     is_probably_code_or_table_start,
@@ -177,6 +177,34 @@ class EndsMidSentenceRule(Rule):
         ]
 
 
+class BrokenChunkBoundaryRule(CrossChunkRule):
+    id = "broken_chunk_boundary"
+    default_severity = "high"
+
+    def check_all(self, chunks: list[Chunk], context: LintContext) -> list[Issue]:
+        issues: list[Issue] = []
+        for index in range(1, len(chunks)):
+            previous = chunks[index - 1]
+            current = chunks[index]
+            if not _looks_like_broken_boundary(previous.text, current.text, context):
+                continue
+            previous_label = previous.id or previous.source or f"chunk #{index}"
+            issues.append(
+                self.issue(
+                    current,
+                    context,
+                    reason=f"Chunk appears to continue an unfinished sentence from {previous_label}.",
+                    why_it_matters=(
+                        "Adjacent chunks split through one sentence, so retrieval may return "
+                        "only half of the needed context."
+                    ),
+                    fix="Use sentence-aware splitting or increase overlap so the boundary keeps a full sentence.",
+                    issue_snippet=_boundary_snippet(previous.text, current.text),
+                )
+            )
+        return issues
+
+
 def _is_ignored_start_word(first_word: str, context: LintContext) -> bool:
     configured = context.config.rule_option("starts_mid_sentence", "ignore_start_words", [])
     ignored = {str(word).lower() for word in configured}
@@ -214,3 +242,58 @@ def _should_flag_lowercase_start(first_word: str, text: str) -> bool:
     if re.match(r"^[a-z][A-Z0-9]", first_word):
         return False
     return True
+
+
+def _looks_like_broken_boundary(previous_text: str, current_text: str, context: LintContext) -> bool:
+    previous = previous_text.rstrip()
+    current = strip_wrapping_openers(strip_leading_markup(current_text))
+    if not previous or not current:
+        return False
+    previous_lines = non_empty_lines(previous)
+    current_lines = non_empty_lines(current)
+    if not previous_lines or not current_lines:
+        return False
+    if looks_like_heading_or_label(current_lines[0]) or is_probably_code_or_table_start(current):
+        return False
+    if current[0] in CONTINUATION_PUNCTUATION:
+        return True
+
+    first_match = re.match(r"([A-Za-z][\w'.-]*)", current)
+    if first_match is None:
+        return False
+    first_word = first_match.group(1)
+    if _is_ignored_start_word(first_word, context):
+        return False
+
+    first_word_lower = first_word.lower().strip(".")
+    connector_words = set(
+        context.config.rule_option("starts_mid_sentence", "connector_words", sorted(CONNECTOR_WORDS))
+    )
+    next_char = current[first_match.end() : first_match.end() + 1]
+    starts_like_continuation = _is_strong_continuation_word(
+        first_word_lower,
+        next_char,
+        connector_words,
+    ) or _should_flag_lowercase_start(first_word, current)
+
+    return starts_like_continuation and _ends_like_unfinished_sentence(previous)
+
+
+def _ends_like_unfinished_sentence(text: str) -> bool:
+    stripped = text.rstrip()
+    if not stripped:
+        return False
+    if stripped[-1] in {",", ";", "-", "\u2013", "\u2014"}:
+        return True
+    if stripped[-1] in END_PUNCTUATION:
+        return False
+    last_word_match = re.search(r"([A-Za-z][\w'-]*)\W*$", stripped)
+    if last_word_match and last_word_match.group(1).lower() in TRAILING_CONTINUATION_WORDS:
+        return True
+    return True
+
+
+def _boundary_snippet(previous_text: str, current_text: str) -> str:
+    previous_tail = " ".join(previous_text.split())[-120:]
+    current_head = " ".join(current_text.split())[:120]
+    return f"{previous_tail} || {current_head}"

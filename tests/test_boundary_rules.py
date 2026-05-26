@@ -159,6 +159,50 @@ def test_trailing_connector_word_is_mid_sentence():
     assert "ends_mid_sentence" in {issue.rule_id for issue in report.issues}
 
 
+def test_broken_chunk_boundary_uses_adjacent_chunks():
+    report = lint(
+        [
+            {
+                "id": "chunk_a",
+                "text": "The results demonstrated that, on the",
+                "source": "paper.pdf",
+                "metadata": {"heading": "Abstract"},
+            },
+            {
+                "id": "chunk_b",
+                "text": "qualitative and quantitative analysis, students used mobile devices frequently.",
+                "source": "paper.pdf",
+                "metadata": {"heading": "Abstract"},
+            },
+        ]
+    )
+
+    issue = next(issue for issue in report.issues if issue.rule_id == "broken_chunk_boundary")
+    assert issue.chunk_id == "chunk_b"
+    assert "chunk_a" in issue.reason
+
+
+def test_broken_chunk_boundary_ignores_new_section_heading():
+    report = lint(
+        [
+            {
+                "id": "chunk_a",
+                "text": "The prior section ends without final punctuation",
+                "source": "paper.pdf",
+                "metadata": {"heading": "Introduction"},
+            },
+            {
+                "id": "chunk_b",
+                "text": "2. Literature Review\nMobile devices are common in language learning.",
+                "source": "paper.pdf",
+                "metadata": {"heading": "Literature Review"},
+            },
+        ]
+    )
+
+    assert "broken_chunk_boundary" not in {issue.rule_id for issue in report.issues}
+
+
 def test_start_boundary_words_are_configurable():
     config = default_config()
     config.rules["starts_mid_sentence"].model_extra["connector_words"] = ["meanwhile"]
