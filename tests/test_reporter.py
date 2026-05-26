@@ -112,6 +112,8 @@ def test_print_report_verbose_shows_examples_with_snippets():
     assert "Examples by root cause" in output
     assert "chunk-0" in output
     assert "snippet:" in output
+    assert "Use --verbose for examples" not in output
+    assert "Use --raw for row-level debugging" in output
 
 
 def test_print_report_raw_respects_max_issues():

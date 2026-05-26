@@ -171,10 +171,16 @@ def print_report(
         _print_raw_issues(report, console=console, max_issues=max_issues)
     else:
         console.print()
-        console.print(
-            "[dim]Use --verbose for examples with snippets. Use --raw for row-level "
-            "debugging; use --raw --max-issues 0 to print every row.[/dim]"
-        )
+        if verbose:
+            console.print(
+                "[dim]Use --raw for row-level debugging; use --raw --max-issues 0 "
+                "to print every row.[/dim]"
+            )
+        else:
+            console.print(
+                "[dim]Use --verbose for examples with snippets. Use --raw for row-level "
+                "debugging; use --raw --max-issues 0 to print every row.[/dim]"
+            )
 
 
 def _print_examples(
