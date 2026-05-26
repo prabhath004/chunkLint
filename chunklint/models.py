@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
+JSON_SCHEMA_VERSION = 1
+
 
 class Chunk(BaseModel):
     id: str | None = None
@@ -65,6 +67,7 @@ class LintReport(BaseModel):
 
     def as_json_dict(self) -> dict[str, Any]:
         return {
+            "schema_version": JSON_SCHEMA_VERSION,
             "summary": {
                 "chunks_scanned": self.chunks_scanned,
                 "issues_found": self.issues_found,
