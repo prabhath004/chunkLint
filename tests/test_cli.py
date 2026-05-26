@@ -36,18 +36,22 @@ def test_cli_fail_on_prints_gate_status(tmp_path):
     assert result.exit_code == 1
     assert "ChunkLint Gate" in result.output
     assert "ChunkLint Report" not in result.output
-    assert "ChunkLint Gate: failed" in result.output
-    assert "Threshold: high (blocks high)" in result.output
-    assert "Blocking: 2 findings (2 high)" in result.output
-    assert "Ignored below threshold:" in result.output
-    assert "- 4 findings (2 medium, 2 low)" in result.output
+    assert "Gate result" in result.output
+    assert "FAILED" in result.output
+    assert "Threshold" in result.output
+    assert "high" in result.output
+    assert "Severities blocked" in result.output
+    assert "Blocking findings" in result.output
+    assert "2 (2 high)" in result.output
+    assert "Ignored Below Threshold" in result.output
+    assert "4 (2 medium, 2 low)" in result.output
     assert "Shown findings:" not in result.output
     assert "Raw findings:" not in result.output
-    assert "Blocking root causes:" in result.output
+    assert "Blocking Root Causes" in result.output
     assert "Markdown tables" in result.output
     assert "Sentence boundaries" in result.output
-    blocking_section = result.output.split("Blocking root causes:", 1)[1]
-    blocking_section = blocking_section.split("Next:", 1)[0]
+    blocking_section = result.output.split("Blocking Root Causes", 1)[1]
+    blocking_section = blocking_section.split("Next Steps", 1)[0]
     assert "Chunk size" not in blocking_section
     assert "Missing retrieval context" not in blocking_section
 
@@ -58,10 +62,14 @@ def test_cli_fail_on_medium_hides_low_only(tmp_path):
     result = runner.invoke(app, ["scan", str(path), "--fail-on", "medium"])
 
     assert result.exit_code == 1
-    assert "Threshold: medium (blocks high, medium)" in result.output
-    assert "Blocking: 4 findings (2 high, 2 medium)" in result.output
-    assert "- 2 findings (2 low)" in result.output
-    assert "- Chunk size (+2 lower)" in result.output
+    assert "Threshold" in result.output
+    assert "medium" in result.output
+    assert "Severities blocked" in result.output
+    assert "high, medium" in result.output
+    assert "Blocking findings" in result.output
+    assert "4 (2 high, 2 medium)" in result.output
+    assert "Ignored Below Threshold" in result.output
+    assert "2 (2 low)" in result.output
     assert "Chunk size" in result.output
     assert "Missing retrieval" in result.output
     assert "context" in result.output
@@ -73,9 +81,13 @@ def test_cli_fail_on_low_blocks_everything(tmp_path):
     result = runner.invoke(app, ["scan", str(path), "--fail-on", "low"])
 
     assert result.exit_code == 1
-    assert "Threshold: low (blocks high, medium, low)" in result.output
-    assert "Blocking: 6 findings (2 high, 2 medium, 2 low)" in result.output
-    assert "Ignored below threshold:" not in result.output
+    assert "Threshold" in result.output
+    assert "low" in result.output
+    assert "Severities blocked" in result.output
+    assert "high, medium, low" in result.output
+    assert "Blocking findings" in result.output
+    assert "6 (2 high, 2 medium, 2 low)" in result.output
+    assert "Ignored Below Threshold" not in result.output
     assert "Chunk size" in result.output
     assert "Missing retrieval" in result.output
     assert "context" in result.output
@@ -100,9 +112,10 @@ def test_cli_fail_on_passes_with_only_lower_severity_findings(tmp_path):
 
     assert result.exit_code == 0
     assert "ChunkLint Gate" in result.output
-    assert "ChunkLint Gate: passed" in result.output
-    assert "Blocking: 0 findings" in result.output
-    assert "Ignored below threshold:" in result.output
+    assert "Gate result" in result.output
+    assert "PASSED" in result.output
+    assert "Blocking findings" in result.output
+    assert "Ignored Below Threshold" in result.output
     assert "No findings at or above high." in result.output
 
 
@@ -116,6 +129,16 @@ def test_cli_json_with_fail_on_stays_json_only(tmp_path):
     assert result.exit_code == 1
     assert payload["summary"]["high"] == 2
     assert "ChunkLint Gate" not in result.output
+
+
+def test_cli_fail_on_rejects_unknown_severity(tmp_path):
+    path = write_gate_fixture(tmp_path)
+
+    result = runner.invoke(app, ["scan", str(path), "--fail-on", "hish"])
+
+    assert result.exit_code == 2
+    normalized = " ".join(result.output.split())
+    assert 'Unsupported severity "hish". Choose one of: high, medium, low.' in normalized
 
 
 def test_cli_scan_writes_json_report(tmp_path):

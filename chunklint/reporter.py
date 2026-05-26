@@ -212,28 +212,24 @@ def print_gate_report(
     blocking_report = _report_from_issues(report.chunks_scanned, blocking_issues)
     blocking_root_causes = group_root_causes(blocking_issues)
 
-    if blocking_issues:
-        console.print("[bold]ChunkLint Gate:[/bold] [red]failed[/red]")
-    else:
-        console.print("[bold]ChunkLint Gate:[/bold] [green]passed[/green]")
-    console.print(f"Threshold: {threshold} ({_format_blocking_scope(threshold)})")
-    console.print(f"Chunks: {report.chunks_scanned}")
-    console.print(
-        f"Blocking: {len(blocking_issues)} findings"
-        f"{_format_breakdown_suffix(blocking_issues)}"
+    console.print("[bold]ChunkLint Gate[/bold]")
+    console.print()
+    _print_gate_summary_table(
+        report,
+        threshold=threshold,
+        blocking_issues=blocking_issues,
+        non_blocking_issues=non_blocking_issues,
+        console=console,
     )
+
     if non_blocking_issues:
         console.print()
-        console.print("[bold]Ignored below threshold:[/bold]")
-        console.print(
-            f"- {len(non_blocking_issues)} findings"
-            f"{_format_breakdown_suffix(non_blocking_issues)}"
-        )
-        for detail in _format_hidden_root_cause_summary(
+        console.print("[bold]Ignored Below Threshold[/bold]")
+        _print_ignored_root_causes_table(
             non_blocking_issues,
-            blocking_root_causes,
-        ):
-            console.print(f"- {detail}")
+            blocking_root_causes=blocking_root_causes,
+            console=console,
+        )
 
     if not blocking_issues:
         console.print()
@@ -245,21 +241,14 @@ def print_gate_report(
         return
 
     console.print()
-    console.print("[bold]Blocking root causes:[/bold]")
-    for index, root_cause in enumerate(blocking_root_causes, start=1):
-        console.print(
-            f"{index}. {root_cause.title} "
-            f"[{root_cause.highest_severity.upper()}] "
-            f"- {root_cause.count} findings across {root_cause.affected_chunks} chunks"
-        )
-        console.print(f"   Fix: {root_cause.fix}")
+    console.print("[bold]Blocking Root Causes[/bold]")
+    _print_root_cause_table(blocking_root_causes, console=console)
 
     recommendations = build_recommendations(blocking_issues)
     if recommendations:
         console.print()
-        console.print("[bold]Next:[/bold]")
-        for recommendation in recommendations:
-            console.print(f"- {recommendation}")
+        console.print("[bold]Next Steps[/bold]")
+        _print_next_steps_table(recommendations, console=console)
 
     if verbose:
         console.print()
@@ -335,6 +324,93 @@ def _print_raw_issues(report: LintReport, *, console: Console, max_issues: int) 
             issue.reason,
             issue.fix,
         )
+    console.print(table)
+
+
+def _print_gate_summary_table(
+    report: LintReport,
+    *,
+    threshold: str,
+    blocking_issues: list[Issue],
+    non_blocking_issues: list[Issue],
+    console: Console,
+) -> None:
+    result = "[red]FAILED[/red]" if blocking_issues else "[green]PASSED[/green]"
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Field")
+    table.add_column("Value")
+    table.add_row("Gate result", result)
+    table.add_row("Threshold", threshold)
+    table.add_row("Severities blocked", _format_blocked_severities(threshold))
+    table.add_row("Chunks scanned", str(report.chunks_scanned))
+    table.add_row(
+        "Blocking findings",
+        f"{len(blocking_issues)}{_format_breakdown_suffix(blocking_issues)}",
+    )
+    table.add_row(
+        "Ignored below threshold",
+        f"{len(non_blocking_issues)}{_format_breakdown_suffix(non_blocking_issues)}",
+    )
+    console.print(table)
+
+
+def _print_ignored_root_causes_table(
+    issues: list[Issue],
+    *,
+    blocking_root_causes: list[RootCauseGroup],
+    console: Console,
+) -> None:
+    blocking_root_cause_ids = {root_cause.id for root_cause in blocking_root_causes}
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Root cause")
+    table.add_column("Findings", justify="right")
+    table.add_column("Max severity")
+    table.add_column("Note")
+    for root_cause in group_root_causes(issues):
+        note = (
+            "Additional lower-severity details for a blocking root cause."
+            if root_cause.id in blocking_root_cause_ids
+            else "Below the selected gate threshold."
+        )
+        table.add_row(
+            root_cause.title,
+            str(root_cause.count),
+            root_cause.highest_severity.upper(),
+            note,
+        )
+    console.print(table)
+
+
+def _print_root_cause_table(
+    root_causes: list[RootCauseGroup],
+    *,
+    console: Console,
+) -> None:
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("#", justify="right")
+    table.add_column("Root cause")
+    table.add_column("Severity")
+    table.add_column("Findings", justify="right")
+    table.add_column("Chunks", justify="right")
+    table.add_column("Fix")
+    for index, root_cause in enumerate(root_causes, start=1):
+        table.add_row(
+            str(index),
+            root_cause.title,
+            root_cause.highest_severity.upper(),
+            str(root_cause.count),
+            str(root_cause.affected_chunks),
+            root_cause.fix,
+        )
+    console.print(table)
+
+
+def _print_next_steps_table(recommendations: list[str], *, console: Console) -> None:
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("#", justify="right")
+    table.add_column("Action")
+    for index, recommendation in enumerate(recommendations, start=1):
+        table.add_row(str(index), recommendation)
     console.print(table)
 
 
@@ -496,26 +572,12 @@ def _format_breakdown_suffix(issues: list[Issue]) -> str:
     return f" ({breakdown})"
 
 
-def _format_hidden_root_cause_summary(
-    issues: list[Issue],
-    blocking_root_causes: list[RootCauseGroup],
-) -> list[str]:
-    blocking_root_cause_ids = {root_cause.id for root_cause in blocking_root_causes}
-    return [
-        f"{root_cause.title} (+{root_cause.count} lower)"
-        if root_cause.id in blocking_root_cause_ids
-        else f"{root_cause.title} ({root_cause.count})"
-        for root_cause in group_root_causes(issues)
-    ]
-
-
-def _format_blocking_scope(threshold: str) -> str:
-    severities = [
+def _format_blocked_severities(threshold: str) -> str:
+    return ", ".join(
         severity
         for severity in ("high", "medium", "low")
         if at_or_above(severity, threshold)
-    ]
-    return "blocks " + ", ".join(severities)
+    )
 
 
 def _severity_breakdown(issues: list[Issue]) -> str:

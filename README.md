@@ -147,9 +147,9 @@ Exit codes:
 - `2`: invalid input or invalid config
 - `3`: unexpected internal error
 
-`--fail-on` is an inclusive CI gate. In text output, it prints a compact gate
-view with only blocking findings, ignored lower-severity details, and numbered
-root causes. JSON output still contains the full machine-readable scan. Use
+`--fail-on` is an inclusive CI gate. In text output, it prints structured gate
+tables for the summary, ignored lower-severity details, blocking root causes,
+and next steps. JSON output still contains the full machine-readable scan. Use
 `--quiet` when you only want the exit code.
 
 ### `init`

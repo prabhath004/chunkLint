@@ -4,7 +4,8 @@ SEVERITY_ORDER = {"low": 1, "medium": 2, "high": 3}
 def normalize_severity(value: str) -> str:
     severity = value.lower().strip()
     if severity not in SEVERITY_ORDER:
-        raise ValueError(f"Unsupported severity: {value}")
+        choices = ", ".join(("high", "medium", "low"))
+        raise ValueError(f'Unsupported severity "{value}". Choose one of: {choices}.')
     return severity
 
 
@@ -20,4 +21,3 @@ def max_severity(left: str, right: str) -> str:
     if SEVERITY_ORDER[left_value] >= SEVERITY_ORDER[right_value]:
         return left_value
     return right_value
-
