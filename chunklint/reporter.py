@@ -225,8 +225,11 @@ def print_gate_report(
     )
     if non_blocking_issues:
         console.print(
-            f"Non-blocking findings hidden: {len(non_blocking_issues)}"
+            f"Lower-severity findings hidden: {len(non_blocking_issues)}"
             f"{_format_breakdown_suffix(non_blocking_issues)}"
+        )
+        console.print(
+            f"Hidden root causes: {_format_root_cause_summary(non_blocking_issues)}"
         )
     console.print(f"Chunks scanned: {report.chunks_scanned}")
 
@@ -235,7 +238,7 @@ def print_gate_report(
         console.print(f"[green]No findings at or above {threshold}.[/green]")
         if non_blocking_issues:
             console.print(
-                "[dim]Run without --fail-on to inspect lower-severity findings.[/dim]"
+                "[dim]Run without --fail-on for the full diagnostic report.[/dim]"
             )
         return
 
@@ -287,7 +290,8 @@ def print_gate_report(
         else:
             console.print(
                 "[dim]Use --verbose for blocking examples with snippets. Use --raw "
-                "for blocking row-level findings.[/dim]"
+                "for blocking row-level findings. Run without --fail-on for the full "
+                "diagnostic report.[/dim]"
             )
 
 
@@ -497,6 +501,13 @@ def _format_breakdown_suffix(issues: list[Issue]) -> str:
     if not breakdown:
         return ""
     return f" ({breakdown})"
+
+
+def _format_root_cause_summary(issues: list[Issue]) -> str:
+    return ", ".join(
+        f"{root_cause.title} ({root_cause.count})"
+        for root_cause in group_root_causes(issues)
+    )
 
 
 def _severity_breakdown(issues: list[Issue]) -> str:

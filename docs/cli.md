@@ -50,8 +50,8 @@ Threshold behavior is inclusive. `--fail-on medium` fails on medium and high
 issues. `--fail-on low` fails on any issue.
 
 `--fail-on` is an inclusive gate. In text output, it prints a dedicated gate view
-with only blocking findings and hides lower-severity findings. JSON output
-remains the full machine-readable scan.
+with only blocking findings, plus a summary of lower-severity root causes hidden
+by the gate. JSON output remains the full machine-readable scan.
 
 Write machine-readable output:
 

@@ -39,14 +39,17 @@ def test_cli_fail_on_prints_gate_status(tmp_path):
     assert "Status: FAILED" in result.output
     assert "Threshold: high" in result.output
     assert "Blocking findings: 2 (2 high)" in result.output
-    assert "Non-blocking findings hidden: 4 (2 medium, 2 low)" in result.output
+    assert "Lower-severity findings hidden: 4 (2 medium, 2 low)" in result.output
+    assert "Hidden root causes:" in result.output
     assert "Shown findings:" not in result.output
     assert "Raw findings:" not in result.output
     assert "Blocking root causes:" in result.output
     assert "Markdown tables" in result.output
     assert "Sentence boundaries" in result.output
-    assert "Chunk size" not in result.output
-    assert "Missing retrieval context" not in result.output
+    blocking_section = result.output.split("Blocking root causes:", 1)[1]
+    blocking_section = blocking_section.split("Blocking next steps:", 1)[0]
+    assert "Chunk size" not in blocking_section
+    assert "Missing retrieval context" not in blocking_section
 
 
 def test_cli_fail_on_medium_hides_low_only(tmp_path):
@@ -57,7 +60,8 @@ def test_cli_fail_on_medium_hides_low_only(tmp_path):
     assert result.exit_code == 1
     assert "Threshold: medium" in result.output
     assert "Blocking findings: 4 (2 high, 2 medium)" in result.output
-    assert "Non-blocking findings hidden: 2 (2 low)" in result.output
+    assert "Lower-severity findings hidden: 2 (2 low)" in result.output
+    assert "Hidden root causes: Chunk size (2)" in result.output
     assert "Chunk size" in result.output
     assert "Missing retrieval" in result.output
     assert "context" in result.output
@@ -71,7 +75,7 @@ def test_cli_fail_on_low_blocks_everything(tmp_path):
     assert result.exit_code == 1
     assert "Threshold: low" in result.output
     assert "Blocking findings: 6 (2 high, 2 medium, 2 low)" in result.output
-    assert "Non-blocking findings hidden:" not in result.output
+    assert "Lower-severity findings hidden:" not in result.output
     assert "Chunk size" in result.output
     assert "Missing retrieval" in result.output
     assert "context" in result.output
@@ -98,7 +102,7 @@ def test_cli_fail_on_passes_with_only_lower_severity_findings(tmp_path):
     assert "ChunkLint Gate" in result.output
     assert "Status: PASSED" in result.output
     assert "Blocking findings: 0" in result.output
-    assert "Non-blocking findings hidden:" in result.output
+    assert "Lower-severity findings hidden:" in result.output
     assert "No findings at or above high." in result.output
 
 
