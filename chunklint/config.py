@@ -35,7 +35,6 @@ class ChunkLintConfig(BaseModel):
             "heading_path",
             "document_title",
             "file_name",
-            "page_label",
         ]
     )
     rules: dict[str, RuleConfig] = Field(default_factory=dict)

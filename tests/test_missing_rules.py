@@ -39,3 +39,17 @@ def test_valid_metadata_avoids_missing_source_and_heading():
     assert "missing_source" not in rule_ids
     assert "missing_heading" not in rule_ids
 
+
+def test_page_label_alone_is_not_heading_context():
+    report = lint(
+        [
+            {
+                "id": "chunk_1",
+                "text": LONG_TEXT,
+                "source": "paper.pdf",
+                "metadata": {"page_label": "1"},
+            }
+        ]
+    )
+
+    assert "missing_heading" in {issue.rule_id for issue in report.issues}

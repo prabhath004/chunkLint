@@ -47,7 +47,6 @@ heading_keys:
   - heading_path
   - document_title
   - file_name
-  - page_label
 
 rules:
   missing_text:
@@ -165,7 +164,8 @@ Flags chunks without a source reference. Source can come from the top-level
 Severity: medium.
 
 Flags chunks without heading or title context. Accepted metadata keys are
-configured through `heading_keys`.
+configured through `heading_keys`. PDF page labels are useful for traceability,
+but they are not section context and are not included by default.
 
 ### `starts_mid_sentence`
 

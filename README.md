@@ -308,7 +308,6 @@ heading_keys:
   - heading_path
   - document_title
   - file_name
-  - page_label
 
 rules:
   starts_mid_sentence:
@@ -351,7 +350,7 @@ Full rule and config reference: [docs/rules.md](docs/rules.md).
 | `missing_text` | high | chunk | Flags empty chunks. |
 | `missing_id` | medium | chunk | Flags chunks without stable IDs. |
 | `missing_source` | medium | chunk | Flags chunks without traceable source metadata. |
-| `missing_heading` | medium | chunk | Flags chunks without heading/title/section metadata. |
+| `missing_heading` | medium | chunk | Flags chunks without heading/title/section metadata. Page labels are not treated as headings. |
 | `starts_mid_sentence` | high | chunk | Flags likely mid-sentence starts using continuation punctuation, configurable connector words, lowercase starts, and false-positive exclusions for headings, code, tables, and known product/tool names. |
 | `ends_mid_sentence` | medium | chunk | Flags likely mid-sentence endings using missing punctuation, continuation punctuation, and trailing connector words while skipping headings, tables, code, URLs, and colon labels. |
 | `too_short` | low | chunk | Flags chunks below `min_words`; raises to medium when heading context is missing. |
