@@ -36,7 +36,8 @@ def test_cli_fail_on_prints_gate_status(tmp_path):
     assert result.exit_code == 1
     assert "Gate failed:" in result.output
     assert "--fail-on high matched 2 findings at or above high" in result.output
-    assert "The report above is the full scan" in result.output
+    assert "The report below is the full scan" in result.output
+    assert result.output.index("Gate failed:") < result.output.index("ChunkLint Report")
 
 
 def test_cli_fail_on_threshold_changes_gate_count(tmp_path):

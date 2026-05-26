@@ -76,6 +76,9 @@ def scan(
                 console.file.write(json_report + "\n")
                 console.file.flush()
             else:
+                if fail_threshold is not None:
+                    _print_gate_result(fail_threshold, gate_issues)
+                    console.print()
                 print_report(
                     report,
                     console=console,
@@ -84,8 +87,6 @@ def scan(
                     examples_per_rule=examples_per_rule,
                     max_issues=max_issues,
                 )
-                if fail_threshold is not None:
-                    _print_gate_result(fail_threshold, gate_issues)
 
         if fail_threshold is not None and gate_issues:
             raise typer.Exit(1)
@@ -130,7 +131,6 @@ def _issues_at_or_above(issues: list[Issue], threshold: str | None) -> list[Issu
 
 
 def _print_gate_result(threshold: str, gate_issues: list[Issue]) -> None:
-    console.print()
     if not gate_issues:
         console.print(f"[green]Gate passed:[/green] --fail-on {threshold} matched 0 findings.")
         return
@@ -140,7 +140,7 @@ def _print_gate_result(threshold: str, gate_issues: list[Issue]) -> None:
         f"{len(gate_issues)} findings at or above {threshold} "
         f"({_severity_breakdown(gate_issues)})."
     )
-    console.print("[dim]The report above is the full scan; --fail-on controls the exit code.[/dim]")
+    console.print("[dim]The report below is the full scan; --fail-on controls the exit code.[/dim]")
 
 
 def _severity_breakdown(issues: list[Issue]) -> str:
