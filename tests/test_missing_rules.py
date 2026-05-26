@@ -1,6 +1,5 @@
 from chunklint import lint
 
-
 LONG_TEXT = (
     "Refund Policy. Customers can request refunds within thirty days when purchases meet "
     "the eligibility requirements listed in the policy document. Support teams should "

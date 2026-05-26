@@ -211,10 +211,9 @@ def _is_ignored_start_word(first_word: str, context: LintContext) -> bool:
     normalized = first_word.lower().strip(".")
     if normalized in ignored:
         return True
-    # CamelCase, iPhone-style, and versioned tokens are usually product/API names, not fragments.
-    if first_word[:1].islower() and any(char.isupper() or char.isdigit() for char in first_word[1:]):
-        return True
-    return False
+    return first_word[:1].islower() and any(
+        char.isupper() or char.isdigit() for char in first_word[1:]
+    )
 
 
 def _is_strong_continuation_word(
@@ -239,9 +238,7 @@ def _should_flag_lowercase_start(first_word: str, text: str) -> bool:
         return False
     if word_count(text) < 4:
         return False
-    if re.match(r"^[a-z][A-Z0-9]", first_word):
-        return False
-    return True
+    return not re.match(r"^[a-z][A-Z0-9]", first_word)
 
 
 def _looks_like_broken_boundary(previous_text: str, current_text: str, context: LintContext) -> bool:

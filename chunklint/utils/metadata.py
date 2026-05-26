@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 SOURCE_KEYS = ("source", "file", "file_name", "filename", "path", "file_path", "document_id")
 
 

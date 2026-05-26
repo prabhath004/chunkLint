@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from chunklint.models import Chunk
 from chunklint.normalizer import chunks_to_jsonable, normalize_chunks

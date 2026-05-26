@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from chunklint.config import (
-    ChunkLintConfig,
     DEFAULT_RULES,
+    ChunkLintConfig,
     default_config,
     default_config_yaml,
     load_config,

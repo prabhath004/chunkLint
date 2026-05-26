@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from chunklint.models import Chunk
 from chunklint.utils.metadata import source_from_metadata
@@ -23,7 +24,7 @@ def normalize_chunk(item: Any) -> Chunk:
         metadata = getattr(item, "metadata", {}) or {}
         return Chunk(
             id=getattr(item, "id", None) or getattr(item, "node_id", None),
-            text=getattr(item, "text"),
+            text=item.text,
             source=getattr(item, "source", None) or source_from_metadata(metadata),
             metadata=metadata,
         )

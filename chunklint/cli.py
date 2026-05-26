@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -26,11 +26,11 @@ def scan(
         typer.Option("--format", help="Output format: text or json."),
     ] = "text",
     out: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--out", help="Write JSON report to a file."),
     ] = None,
     fail_on: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--fail-on",
             help=(
@@ -40,7 +40,7 @@ def scan(
         ),
     ] = None,
     fail_on_at_or_above: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--fail-on-at-or-above",
             help=(
@@ -50,7 +50,7 @@ def scan(
         ),
     ] = None,
     config: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--config", help="Path to chunklint.yml."),
     ] = None,
     quiet: Annotated[bool, typer.Option("--quiet", help="Suppress terminal output.")] = False,

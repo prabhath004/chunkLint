@@ -66,7 +66,10 @@ class PdfNoiseRule(CrossChunkRule):
                         context,
                         reason="Chunk contains spaced PDF hyphenation artifacts.",
                         why_it_matters="PDF extraction can insert spaces around hyphens and split words.",
-                        fix="Normalize spaced hyphens before chunking, for example 'semi -structured' to 'semi-structured'.",
+                        fix=(
+                            "Normalize spaced hyphens before chunking, for example "
+                            "'semi -structured' to 'semi-structured'."
+                        ),
                     )
                 )
                 continue

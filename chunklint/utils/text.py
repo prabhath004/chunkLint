@@ -50,9 +50,7 @@ def looks_like_heading_or_label(line: str) -> bool:
         return True
     if KEY_VALUE_RE.match(stripped):
         return True
-    if words <= 8 and not re.search(r"[.!?]", stripped):
-        return True
-    return False
+    return words <= 8 and not re.search(r"[.!?]", stripped)
 
 
 def is_probably_code_or_table_start(text: str) -> bool:

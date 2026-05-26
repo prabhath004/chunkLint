@@ -51,9 +51,13 @@ chunklint = "chunklint.cli:app"
 testpaths = ["tests"]
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+  "SIM108",  # ternary vs if/else is a readability call we make per case
+  "B008",    # typer uses default-arg call sites (typer.Option / typer.Argument)
+]
 
