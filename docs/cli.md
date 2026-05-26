@@ -49,9 +49,9 @@ chunklint scan chunks.json --fail-on low
 Threshold behavior is inclusive. `--fail-on medium` fails on medium and high
 issues. `--fail-on low` fails on any issue.
 
-`--fail-on` is an inclusive gate. In text output, the report is focused to the
-findings at or above the selected threshold. JSON output remains the full
-machine-readable scan.
+`--fail-on` is an inclusive gate. In text output, it prints a dedicated gate view
+with only blocking findings and hides lower-severity findings. JSON output
+remains the full machine-readable scan.
 
 Write machine-readable output:
 

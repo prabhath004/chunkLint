@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import Counter
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -10,8 +9,7 @@ from rich.console import Console
 from chunklint.config import default_config_yaml
 from chunklint.engine import lint
 from chunklint.loader import load_chunks
-from chunklint.models import Issue, LintReport
-from chunklint.reporter import print_report, report_json
+from chunklint.reporter import print_gate_report, print_report, report_json
 from chunklint.rules import ALL_RULES
 from chunklint.utils.severity import at_or_above, normalize_severity
 
@@ -66,8 +64,6 @@ def scan(
         chunks = load_chunks(path)
         report = lint(chunks, config_path=config)
         json_report = report_json(report)
-        gate_issues = _issues_at_or_above(report.issues, fail_threshold)
-        display_report = _focused_report(report, gate_issues, fail_threshold)
 
         if out is not None:
             out.write_text(json_report + "\n")
@@ -78,19 +74,26 @@ def scan(
                 console.file.flush()
             else:
                 if fail_threshold is not None:
-                    _print_gate_result(fail_threshold, gate_issues)
-                    console.print()
-                print_report(
-                    display_report,
-                    console=console,
-                    verbose=verbose,
-                    raw=raw,
-                    examples_per_rule=examples_per_rule,
-                    max_issues=max_issues,
-                    focus_threshold=fail_threshold,
-                )
+                    print_gate_report(
+                        report,
+                        fail_threshold,
+                        console=console,
+                        verbose=verbose,
+                        raw=raw,
+                        examples_per_rule=examples_per_rule,
+                        max_issues=max_issues,
+                    )
+                else:
+                    print_report(
+                        report,
+                        console=console,
+                        verbose=verbose,
+                        raw=raw,
+                        examples_per_rule=examples_per_rule,
+                        max_issues=max_issues,
+                    )
 
-        if fail_threshold is not None and gate_issues:
+        if fail_threshold is not None and _has_issues_at_or_above(report.issues, fail_threshold):
             raise typer.Exit(1)
     except typer.Exit:
         raise
@@ -126,54 +129,10 @@ def rules() -> None:
         console.print(f"{severity.upper():7} {rule_id:24} {scope}")
 
 
-def _issues_at_or_above(issues: list[Issue], threshold: str | None) -> list[Issue]:
+def _has_issues_at_or_above(issues, threshold: str | None) -> bool:
     if threshold is None:
-        return []
-    return [issue for issue in issues if at_or_above(issue.severity, threshold)]
-
-
-def _focused_report(
-    report: LintReport,
-    gate_issues: list[Issue],
-    threshold: str | None,
-) -> LintReport:
-    if threshold is None:
-        return report
-    counts = Counter(issue.severity for issue in gate_issues)
-    return LintReport(
-        chunks_scanned=report.chunks_scanned,
-        issues_found=len(gate_issues),
-        high=counts["high"],
-        medium=counts["medium"],
-        low=counts["low"],
-        issues=gate_issues,
-    )
-
-
-def _print_gate_result(threshold: str, gate_issues: list[Issue]) -> None:
-    if not gate_issues:
-        console.print(f"[green]Gate passed:[/green] --fail-on {threshold} matched 0 findings.")
-        return
-
-    console.print(
-        f"[red]Gate failed:[/red] --fail-on {threshold} matched "
-        f"{len(gate_issues)} findings at or above {threshold} "
-        f"({_severity_breakdown(gate_issues)})."
-    )
-    console.print(
-        "[dim]The report below is filtered to findings that affect this gate. "
-        "Use --format json for the full machine report.[/dim]"
-    )
-
-
-def _severity_breakdown(issues: list[Issue]) -> str:
-    counts = Counter(issue.severity for issue in issues)
-    parts = [
-        f"{counts[severity]} {severity}"
-        for severity in ("high", "medium", "low")
-        if counts[severity]
-    ]
-    return ", ".join(parts)
+        return False
+    return any(at_or_above(issue.severity, threshold) for issue in issues)
 
 
 if __name__ == "__main__":

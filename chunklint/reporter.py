@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from chunklint.models import Issue, LintReport
+from chunklint.utils.severity import at_or_above, normalize_severity
 
 
 @dataclass(frozen=True)
@@ -189,6 +190,104 @@ def print_report(
             console.print(
                 "[dim]Use --verbose for examples with snippets. Use --raw for row-level "
                 "debugging; use --raw --max-issues 0 to print every row.[/dim]"
+            )
+
+
+def print_gate_report(
+    report: LintReport,
+    threshold: str,
+    *,
+    console: Console | None = None,
+    max_issues: int = 20,
+    verbose: bool = False,
+    examples_per_rule: int = 3,
+    raw: bool = False,
+) -> None:
+    console = console or Console()
+    threshold = normalize_severity(threshold)
+    blocking_issues = [issue for issue in report.issues if at_or_above(issue.severity, threshold)]
+    non_blocking_issues = [
+        issue for issue in report.issues if not at_or_above(issue.severity, threshold)
+    ]
+    blocking_report = _report_from_issues(report.chunks_scanned, blocking_issues)
+    blocking_root_causes = group_root_causes(blocking_issues)
+
+    console.print("[bold]ChunkLint Gate[/bold]")
+    console.print()
+    if blocking_issues:
+        console.print("[red]Status: FAILED[/red]")
+    else:
+        console.print("[green]Status: PASSED[/green]")
+    console.print(f"Threshold: {threshold}")
+    console.print(
+        f"Blocking findings: {len(blocking_issues)}"
+        f"{_format_breakdown_suffix(blocking_issues)}"
+    )
+    if non_blocking_issues:
+        console.print(
+            f"Non-blocking findings hidden: {len(non_blocking_issues)}"
+            f"{_format_breakdown_suffix(non_blocking_issues)}"
+        )
+    console.print(f"Chunks scanned: {report.chunks_scanned}")
+
+    if not blocking_issues:
+        console.print()
+        console.print(f"[green]No findings at or above {threshold}.[/green]")
+        if non_blocking_issues:
+            console.print(
+                "[dim]Run without --fail-on to inspect lower-severity findings.[/dim]"
+            )
+        return
+
+    console.print()
+    console.print("[bold]Blocking root causes:[/bold]")
+    root_table = Table(show_header=True, header_style="bold")
+    root_table.add_column("Root cause")
+    root_table.add_column("Findings", justify="right")
+    root_table.add_column("Chunks", justify="right")
+    root_table.add_column("Max")
+    root_table.add_column("Fix")
+    for root_cause in blocking_root_causes:
+        root_table.add_row(
+            root_cause.title,
+            str(root_cause.count),
+            str(root_cause.affected_chunks),
+            root_cause.highest_severity.upper(),
+            root_cause.fix,
+        )
+    console.print(root_table)
+
+    recommendations = build_recommendations(blocking_issues)
+    if recommendations:
+        console.print()
+        console.print("[bold]Blocking next steps:[/bold]")
+        for recommendation in recommendations:
+            console.print(f"- {recommendation}")
+
+    if verbose:
+        console.print()
+        console.print("[bold]Blocking examples:[/bold]")
+        _print_examples(
+            blocking_issues,
+            console=console,
+            examples_per_rule=_examples_to_show(examples_per_rule),
+            include_snippets=True,
+        )
+
+    if raw:
+        console.print()
+        _print_raw_issues(blocking_report, console=console, max_issues=max_issues)
+    else:
+        console.print()
+        if verbose:
+            console.print(
+                "[dim]Use --raw for blocking row-level findings; use --raw "
+                "--max-issues 0 to print every blocking row.[/dim]"
+            )
+        else:
+            console.print(
+                "[dim]Use --verbose for blocking examples with snippets. Use --raw "
+                "for blocking row-level findings.[/dim]"
             )
 
 
@@ -379,6 +478,35 @@ def build_recommendations(issues: list[Issue]) -> list[str]:
         recommendations.append("Split very large chunks by section or paragraph before embedding.")
 
     return recommendations[:5]
+
+
+def _report_from_issues(chunks_scanned: int, issues: list[Issue]) -> LintReport:
+    counts = Counter(issue.severity for issue in issues)
+    return LintReport(
+        chunks_scanned=chunks_scanned,
+        issues_found=len(issues),
+        high=counts["high"],
+        medium=counts["medium"],
+        low=counts["low"],
+        issues=issues,
+    )
+
+
+def _format_breakdown_suffix(issues: list[Issue]) -> str:
+    breakdown = _severity_breakdown(issues)
+    if not breakdown:
+        return ""
+    return f" ({breakdown})"
+
+
+def _severity_breakdown(issues: list[Issue]) -> str:
+    counts = Counter(issue.severity for issue in issues)
+    parts = [
+        f"{counts[severity]} {severity}"
+        for severity in ("high", "medium", "low")
+        if counts[severity]
+    ]
+    return ", ".join(parts)
 
 
 def _select_examples(issues: list[Issue], limit: int) -> list[Issue]:
