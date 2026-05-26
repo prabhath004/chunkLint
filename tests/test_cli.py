@@ -188,6 +188,69 @@ def test_cli_fail_on_empty_value_is_rejected(tmp_path):
     assert "at least one severity" in result.output
 
 
+def test_cli_fail_on_at_or_above_expands_to_threshold_set(tmp_path):
+    path = write_gate_fixture(tmp_path)
+
+    result = runner.invoke(app, ["scan", str(path), "--fail-on-at-or-above", "medium"])
+
+    assert result.exit_code == 1
+    assert "Selected severities" in result.output
+    assert "high, medium" in result.output
+    assert "Blocking Root Causes (high, medium)" in result.output
+
+
+def test_cli_fail_on_at_or_above_low_includes_all_severities(tmp_path):
+    path = write_gate_fixture(tmp_path)
+
+    result = runner.invoke(app, ["scan", str(path), "--fail-on-at-or-above", "low"])
+
+    assert result.exit_code == 1
+    assert "high, medium, low" in result.output
+
+
+def test_cli_fail_on_at_or_above_passes_when_below_threshold(tmp_path):
+    path = tmp_path / "chunks.json"
+    path.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "tiny",
+                    "text": "Short.",
+                    "source": "notes.md",
+                    "metadata": {"heading": "Notes"},
+                }
+            ]
+        )
+    )
+
+    result = runner.invoke(app, ["scan", str(path), "--fail-on-at-or-above", "high"])
+
+    assert result.exit_code == 0
+    assert "PASSED" in result.output
+
+
+def test_cli_fail_on_and_fail_on_at_or_above_are_mutually_exclusive(tmp_path):
+    path = write_gate_fixture(tmp_path)
+
+    result = runner.invoke(
+        app,
+        ["scan", str(path), "--fail-on", "high", "--fail-on-at-or-above", "medium"],
+    )
+
+    assert result.exit_code == 2
+    assert "mutually exclusive" in result.output
+
+
+def test_cli_fail_on_at_or_above_rejects_unknown_severity(tmp_path):
+    path = write_gate_fixture(tmp_path)
+
+    result = runner.invoke(app, ["scan", str(path), "--fail-on-at-or-above", "huge"])
+
+    assert result.exit_code == 2
+    normalized = " ".join(result.output.split())
+    assert 'Unsupported severity "huge"' in normalized
+
+
 def test_cli_scan_writes_json_report(tmp_path):
     path = tmp_path / "chunks.json"
     out = tmp_path / "report.json"

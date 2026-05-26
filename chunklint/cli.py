@@ -12,7 +12,7 @@ from chunklint.engine import lint
 from chunklint.loader import load_chunks
 from chunklint.reporter import print_gate_report, print_report, report_json
 from chunklint.rules import ALL_RULES
-from chunklint.utils.severity import normalize_severity
+from chunklint.utils.severity import SEVERITY_ORDER, normalize_severity
 
 app = typer.Typer(help="Static analysis for RAG chunks.", no_args_is_help=True)
 console = Console()
@@ -36,6 +36,16 @@ def scan(
             help=(
                 "Fail if issues with this exact severity exist. Accepts a comma "
                 "list (e.g. 'high,medium') to gate on multiple severities."
+            ),
+        ),
+    ] = None,
+    fail_on_at_or_above: Annotated[
+        Optional[str],
+        typer.Option(
+            "--fail-on-at-or-above",
+            help=(
+                "Fail if any issue has this severity or higher. "
+                "Threshold-style gating (high | medium | low)."
             ),
         ),
     ] = None,
@@ -68,6 +78,7 @@ def scan(
       chunklint scan chunks.json
       chunklint scan chunks.json --fail-on high
       chunklint scan chunks.json --fail-on high,medium
+      chunklint scan chunks.json --fail-on-at-or-above medium
       chunklint scan chunks.json --format json --out report.json
       chunklint scan chunks.json --verbose
       chunklint scan chunks.json --raw --max-issues 0
@@ -77,7 +88,17 @@ def scan(
         output_format = output_format.lower().strip()
         if output_format not in {"text", "json"}:
             raise ValueError("--format must be text or json.")
-        selected_severities = _parse_fail_on(fail_on) if fail_on is not None else None
+        if fail_on is not None and fail_on_at_or_above is not None:
+            raise ValueError(
+                "--fail-on and --fail-on-at-or-above are mutually exclusive. "
+                "Use one or the other."
+            )
+        if fail_on_at_or_above is not None:
+            selected_severities = _expand_threshold(fail_on_at_or_above)
+        elif fail_on is not None:
+            selected_severities = _parse_fail_on(fail_on)
+        else:
+            selected_severities = None
 
         chunks = load_chunks(path)
         start = time.perf_counter()
@@ -168,6 +189,12 @@ def _parse_fail_on(value: str) -> list[str]:
             seen.add(severity)
             normalized.append(severity)
     return normalized
+
+
+def _expand_threshold(value: str) -> list[str]:
+    severity = normalize_severity(value)
+    floor = SEVERITY_ORDER[severity]
+    return [name for name, rank in SEVERITY_ORDER.items() if rank >= floor]
 
 
 def _has_issues_with_severities(issues, severities: list[str]) -> bool:
