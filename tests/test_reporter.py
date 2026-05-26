@@ -188,6 +188,47 @@ def test_top_offending_chunks_skips_single_issue_chunks():
     assert top_offending_chunks(issues) == []
 
 
+def test_root_cause_breakdown_shows_distinct_reasons():
+    issues = [
+        Issue(
+            chunk_id=f"chunk_{index}",
+            source="doc.pdf",
+            rule_id="pdf_noise",
+            severity="low",
+            reason=reason,
+            why_it_matters="why",
+            fix="fix",
+            snippet=None,
+        )
+        for index, reason in enumerate(
+            [
+                "Chunk contains a standalone page-number line.",
+                "Chunk contains a standalone page-number line.",
+                "Chunk contains PDF line-break hyphenation.",
+                'Chunk contains repeated "Page X" style text.',
+            ]
+        )
+    ]
+    report = report_with_issues(issues)
+
+    output = render_report(report)
+
+    assert "PDF extraction noise:" in output
+    assert "standalone page-number line. x 2" in output
+    assert "PDF line-break hyphenation. x 1" in output
+
+
+def test_root_cause_breakdown_skipped_for_single_reason():
+    issues = [
+        issue("starts_mid_sentence", "high", f"chunk_{index}") for index in range(3)
+    ]
+    report = report_with_issues(issues)
+
+    output = render_report(report)
+
+    assert "Sentence boundaries:" not in output
+
+
 def test_top_offending_chunks_table_appears_in_default_report():
     issues = [
         issue("starts_mid_sentence", "high", "chunk_dense"),

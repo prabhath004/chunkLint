@@ -180,6 +180,8 @@ def print_report(
         )
     console.print(root_table)
 
+    _print_root_cause_breakdowns(root_causes, report.issues, console=console)
+
     offenders = top_offending_chunks(report.issues)
     if offenders:
         console.print()
@@ -272,6 +274,7 @@ def print_gate_report(
     else:
         console.print(f"[bold]Blocking Root Causes ({threshold_label})[/bold]")
     _print_root_cause_table(blocking_root_causes, console=console)
+    _print_root_cause_breakdowns(blocking_root_causes, blocking_issues, console=console)
 
     offenders = top_offending_chunks(blocking_issues)
     if offenders:
@@ -427,6 +430,36 @@ def _print_root_cause_table(
             root_cause.fix,
         )
     console.print(table)
+
+
+def _print_root_cause_breakdowns(
+    root_causes: list[RootCauseGroup],
+    issues: list[Issue],
+    *,
+    console: Console,
+) -> None:
+    issues_by_rule: dict[str, list[Issue]] = {}
+    for issue in issues:
+        issues_by_rule.setdefault(issue.rule_id, []).append(issue)
+
+    printed = False
+    for root_cause in root_causes:
+        root_issues: list[Issue] = []
+        for rule_id in root_cause.rule_ids:
+            root_issues.extend(issues_by_rule.get(rule_id, []))
+        reason_counts = Counter(issue.reason for issue in root_issues)
+        if len(reason_counts) < 2:
+            continue
+        top = reason_counts.most_common(4)
+        parts = [f"{_compact(reason, width=60)} x {count}" for reason, count in top]
+        extra = len(reason_counts) - len(top)
+        suffix = f", +{extra} more" if extra else ""
+        console.print(
+            f"[dim]{root_cause.title}: {', '.join(parts)}{suffix}[/dim]"
+        )
+        printed = True
+    if printed:
+        console.print()
 
 
 def _print_top_chunks_table(offenders: list[ChunkOffender], *, console: Console) -> None:
