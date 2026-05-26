@@ -10,7 +10,7 @@ from rich.console import Console
 from chunklint.config import default_config_yaml
 from chunklint.engine import lint
 from chunklint.loader import load_chunks
-from chunklint.models import Issue
+from chunklint.models import Issue, LintReport
 from chunklint.reporter import print_report, report_json
 from chunklint.rules import ALL_RULES
 from chunklint.utils.severity import at_or_above, normalize_severity
@@ -67,6 +67,7 @@ def scan(
         report = lint(chunks, config_path=config)
         json_report = report_json(report)
         gate_issues = _issues_at_or_above(report.issues, fail_threshold)
+        display_report = _focused_report(report, gate_issues, fail_threshold)
 
         if out is not None:
             out.write_text(json_report + "\n")
@@ -80,12 +81,13 @@ def scan(
                     _print_gate_result(fail_threshold, gate_issues)
                     console.print()
                 print_report(
-                    report,
+                    display_report,
                     console=console,
                     verbose=verbose,
                     raw=raw,
                     examples_per_rule=examples_per_rule,
                     max_issues=max_issues,
+                    focus_threshold=fail_threshold,
                 )
 
         if fail_threshold is not None and gate_issues:
@@ -130,6 +132,24 @@ def _issues_at_or_above(issues: list[Issue], threshold: str | None) -> list[Issu
     return [issue for issue in issues if at_or_above(issue.severity, threshold)]
 
 
+def _focused_report(
+    report: LintReport,
+    gate_issues: list[Issue],
+    threshold: str | None,
+) -> LintReport:
+    if threshold is None:
+        return report
+    counts = Counter(issue.severity for issue in gate_issues)
+    return LintReport(
+        chunks_scanned=report.chunks_scanned,
+        issues_found=len(gate_issues),
+        high=counts["high"],
+        medium=counts["medium"],
+        low=counts["low"],
+        issues=gate_issues,
+    )
+
+
 def _print_gate_result(threshold: str, gate_issues: list[Issue]) -> None:
     if not gate_issues:
         console.print(f"[green]Gate passed:[/green] --fail-on {threshold} matched 0 findings.")
@@ -140,7 +160,10 @@ def _print_gate_result(threshold: str, gate_issues: list[Issue]) -> None:
         f"{len(gate_issues)} findings at or above {threshold} "
         f"({_severity_breakdown(gate_issues)})."
     )
-    console.print("[dim]The report below is the full scan; --fail-on controls the exit code.[/dim]")
+    console.print(
+        "[dim]The report below is filtered to findings that affect this gate. "
+        "Use --format json for the full machine report.[/dim]"
+    )
 
 
 def _severity_breakdown(issues: list[Issue]) -> str:

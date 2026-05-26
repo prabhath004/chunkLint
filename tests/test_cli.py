@@ -36,8 +36,14 @@ def test_cli_fail_on_prints_gate_status(tmp_path):
     assert result.exit_code == 1
     assert "Gate failed:" in result.output
     assert "--fail-on high matched 2 findings at or above high" in result.output
-    assert "The report below is the full scan" in result.output
+    assert "The report below is filtered" in result.output
     assert result.output.index("Gate failed:") < result.output.index("ChunkLint Report")
+    assert "Shown findings: 2 at or above high" in result.output
+    assert "Raw findings:" not in result.output
+    assert "Markdown tables" in result.output
+    assert "Sentence boundaries" in result.output
+    assert "Chunk size" not in result.output
+    assert "Missing retrieval context" not in result.output
 
 
 def test_cli_fail_on_threshold_changes_gate_count(tmp_path):
@@ -47,6 +53,10 @@ def test_cli_fail_on_threshold_changes_gate_count(tmp_path):
 
     assert result.exit_code == 1
     assert "--fail-on low matched 6 findings at or above low" in result.output
+    assert "Shown findings: 6 at or above low" in result.output
+    assert "Chunk size" in result.output
+    assert "retrieval" in result.output
+    assert "context" in result.output
 
 
 def test_cli_json_with_fail_on_stays_json_only(tmp_path):

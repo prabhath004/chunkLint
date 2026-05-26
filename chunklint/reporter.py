@@ -112,13 +112,19 @@ def print_report(
     verbose: bool = False,
     examples_per_rule: int = 3,
     raw: bool = False,
+    focus_threshold: str | None = None,
 ) -> None:
     console = console or Console()
     console.print("[bold]ChunkLint Report[/bold]")
     console.print()
     console.print(f"Chunks scanned: {report.chunks_scanned}")
     root_causes = group_root_causes(report.issues)
-    console.print(f"Raw findings: {report.issues_found}")
+    if focus_threshold is None:
+        console.print(f"Raw findings: {report.issues_found}")
+    else:
+        console.print(
+            f"Shown findings: {report.issues_found} at or above {focus_threshold}"
+        )
     if root_causes:
         console.print(f"Actionable root causes: {len(root_causes)}")
     console.print()
@@ -128,7 +134,10 @@ def print_report(
 
     if not report.issues:
         console.print()
-        console.print("[green]No issues found.[/green]")
+        if focus_threshold is None:
+            console.print("[green]No issues found.[/green]")
+        else:
+            console.print(f"[green]No findings at or above {focus_threshold}.[/green]")
         return
 
     console.print()
