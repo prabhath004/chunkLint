@@ -38,19 +38,20 @@ def test_cli_fail_on_prints_gate_status(tmp_path):
     assert "ChunkLint Report" not in result.output
     assert "Gate result" in result.output
     assert "FAILED" in result.output
-    assert "Threshold" in result.output
+    assert "Selected severity" in result.output
     assert "high" in result.output
-    assert "Severities blocked" in result.output
-    assert "Blocking findings" in result.output
+    assert "All findings" in result.output
+    assert "6 (2 high, 2 medium, 2 low)" in result.output
+    assert "Selected findings" in result.output
     assert "2 (2 high)" in result.output
-    assert "Ignored Below Threshold" in result.output
-    assert "4 (2 medium, 2 low)" in result.output
+    assert "Other findings" in result.output
+    assert "Overall Lint Report" in result.output
     assert "Shown findings:" not in result.output
     assert "Raw findings:" not in result.output
-    assert "Blocking Root Causes" in result.output
+    assert "High Root Causes" in result.output
     assert "Markdown tables" in result.output
     assert "Sentence boundaries" in result.output
-    blocking_section = result.output.split("Blocking Root Causes", 1)[1]
+    blocking_section = result.output.split("High Root Causes", 1)[1]
     blocking_section = blocking_section.split("Next Steps", 1)[0]
     assert "Chunk size" not in blocking_section
     assert "Missing retrieval context" not in blocking_section
@@ -62,35 +63,37 @@ def test_cli_fail_on_medium_hides_low_only(tmp_path):
     result = runner.invoke(app, ["scan", str(path), "--fail-on", "medium"])
 
     assert result.exit_code == 1
-    assert "Threshold" in result.output
+    assert "Selected severity" in result.output
     assert "medium" in result.output
-    assert "Severities blocked" in result.output
-    assert "high, medium" in result.output
-    assert "Blocking findings" in result.output
-    assert "4 (2 high, 2 medium)" in result.output
-    assert "Ignored Below Threshold" in result.output
-    assert "2 (2 low)" in result.output
+    assert "Selected findings" in result.output
+    assert "2 (2 medium)" in result.output
+    assert "Overall Lint Report" in result.output
+    assert "Medium Root Causes" in result.output
     assert "Chunk size" in result.output
     assert "Missing retrieval" in result.output
     assert "context" in result.output
+    selected_section = result.output.split("Medium Root Causes", 1)[1]
+    selected_section = selected_section.split("Next Steps", 1)[0]
+    assert "Markdown tables" not in selected_section
 
 
-def test_cli_fail_on_low_blocks_everything(tmp_path):
+def test_cli_fail_on_low_shows_only_low_root_causes(tmp_path):
     path = write_gate_fixture(tmp_path)
 
     result = runner.invoke(app, ["scan", str(path), "--fail-on", "low"])
 
     assert result.exit_code == 1
-    assert "Threshold" in result.output
+    assert "Selected severity" in result.output
     assert "low" in result.output
-    assert "Severities blocked" in result.output
-    assert "high, medium, low" in result.output
-    assert "Blocking findings" in result.output
-    assert "6 (2 high, 2 medium, 2 low)" in result.output
-    assert "Ignored Below Threshold" not in result.output
-    assert "Chunk size" in result.output
-    assert "Missing retrieval" in result.output
-    assert "context" in result.output
+    assert "Selected findings" in result.output
+    assert "2 (2 low)" in result.output
+    assert "Overall Lint Report" in result.output
+    assert "Low Root Causes" in result.output
+    selected_section = result.output.split("Low Root Causes", 1)[1]
+    selected_section = selected_section.split("Next Steps", 1)[0]
+    assert "Chunk size" in selected_section
+    assert "Markdown tables" not in selected_section
+    assert "Missing retrieval" not in selected_section
 
 
 def test_cli_fail_on_passes_with_only_lower_severity_findings(tmp_path):
@@ -114,9 +117,9 @@ def test_cli_fail_on_passes_with_only_lower_severity_findings(tmp_path):
     assert "ChunkLint Gate" in result.output
     assert "Gate result" in result.output
     assert "PASSED" in result.output
-    assert "Blocking findings" in result.output
-    assert "Ignored Below Threshold" in result.output
-    assert "No findings at or above high." in result.output
+    assert "Selected findings" in result.output
+    assert "Overall Lint Report" in result.output
+    assert "No high findings." in result.output
 
 
 def test_cli_json_with_fail_on_stays_json_only(tmp_path):

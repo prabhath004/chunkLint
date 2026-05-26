@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from chunklint.models import Issue, LintReport
-from chunklint.utils.severity import at_or_above, normalize_severity
+from chunklint.utils.severity import normalize_severity
 
 
 @dataclass(frozen=True)
@@ -205,9 +205,11 @@ def print_gate_report(
 ) -> None:
     console = console or Console()
     threshold = normalize_severity(threshold)
-    blocking_issues = [issue for issue in report.issues if at_or_above(issue.severity, threshold)]
+    blocking_issues = [
+        issue for issue in report.issues if normalize_severity(issue.severity) == threshold
+    ]
     non_blocking_issues = [
-        issue for issue in report.issues if not at_or_above(issue.severity, threshold)
+        issue for issue in report.issues if normalize_severity(issue.severity) != threshold
     ]
     blocking_report = _report_from_issues(report.chunks_scanned, blocking_issues)
     blocking_root_causes = group_root_causes(blocking_issues)
@@ -216,32 +218,24 @@ def print_gate_report(
     console.print()
     _print_gate_summary_table(
         report,
-        threshold=threshold,
+        selected_severity=threshold,
         blocking_issues=blocking_issues,
         non_blocking_issues=non_blocking_issues,
         console=console,
     )
 
-    if non_blocking_issues:
-        console.print()
-        console.print("[bold]Ignored Below Threshold[/bold]")
-        _print_ignored_root_causes_table(
-            non_blocking_issues,
-            blocking_root_causes=blocking_root_causes,
-            console=console,
-        )
+    console.print()
+    console.print("[bold]Overall Lint Report[/bold]")
+    _print_overall_lint_table(report, console=console)
 
     if not blocking_issues:
         console.print()
-        console.print(f"[green]No findings at or above {threshold}.[/green]")
-        if non_blocking_issues:
-            console.print(
-                "[dim]Run without --fail-on to inspect ignored findings.[/dim]"
-            )
+        console.print(f"[green]No {threshold} findings.[/green]")
+        console.print("[dim]Run without --fail-on for the full diagnostic report.[/dim]")
         return
 
     console.print()
-    console.print("[bold]Blocking Root Causes[/bold]")
+    console.print(f"[bold]{threshold.title()} Root Causes[/bold]")
     _print_root_cause_table(blocking_root_causes, console=console)
 
     recommendations = build_recommendations(blocking_issues)
@@ -272,7 +266,7 @@ def print_gate_report(
             )
         else:
             console.print(
-                "[dim]Add --verbose for examples, --raw for blocking rows, or run "
+                "[dim]Add --verbose for examples, --raw for selected rows, or run "
                 "without --fail-on for the full diagnostic report.[/dim]"
             )
 
@@ -330,7 +324,7 @@ def _print_raw_issues(report: LintReport, *, console: Console, max_issues: int) 
 def _print_gate_summary_table(
     report: LintReport,
     *,
-    threshold: str,
+    selected_severity: str,
     blocking_issues: list[Issue],
     non_blocking_issues: list[Issue],
     console: Console,
@@ -340,44 +334,31 @@ def _print_gate_summary_table(
     table.add_column("Field")
     table.add_column("Value")
     table.add_row("Gate result", result)
-    table.add_row("Threshold", threshold)
-    table.add_row("Severities blocked", _format_blocked_severities(threshold))
+    table.add_row("Selected severity", selected_severity)
     table.add_row("Chunks scanned", str(report.chunks_scanned))
     table.add_row(
-        "Blocking findings",
+        "All findings",
+        f"{report.issues_found}{_format_report_breakdown_suffix(report)}",
+    )
+    table.add_row(
+        "Selected findings",
         f"{len(blocking_issues)}{_format_breakdown_suffix(blocking_issues)}",
     )
     table.add_row(
-        "Ignored below threshold",
+        "Other findings",
         f"{len(non_blocking_issues)}{_format_breakdown_suffix(non_blocking_issues)}",
     )
     console.print(table)
 
 
-def _print_ignored_root_causes_table(
-    issues: list[Issue],
-    *,
-    blocking_root_causes: list[RootCauseGroup],
-    console: Console,
-) -> None:
-    blocking_root_cause_ids = {root_cause.id for root_cause in blocking_root_causes}
+def _print_overall_lint_table(report: LintReport, *, console: Console) -> None:
     table = Table(show_header=True, header_style="bold")
-    table.add_column("Root cause")
+    table.add_column("Severity")
     table.add_column("Findings", justify="right")
-    table.add_column("Max severity")
-    table.add_column("Note")
-    for root_cause in group_root_causes(issues):
-        note = (
-            "Additional lower-severity details for a blocking root cause."
-            if root_cause.id in blocking_root_cause_ids
-            else "Below the selected gate threshold."
-        )
-        table.add_row(
-            root_cause.title,
-            str(root_cause.count),
-            root_cause.highest_severity.upper(),
-            note,
-        )
+    table.add_row("High", str(report.high))
+    table.add_row("Medium", str(report.medium))
+    table.add_row("Low", str(report.low))
+    table.add_row("Total", str(report.issues_found))
     console.print(table)
 
 
@@ -572,14 +553,6 @@ def _format_breakdown_suffix(issues: list[Issue]) -> str:
     return f" ({breakdown})"
 
 
-def _format_blocked_severities(threshold: str) -> str:
-    return ", ".join(
-        severity
-        for severity in ("high", "medium", "low")
-        if at_or_above(severity, threshold)
-    )
-
-
 def _severity_breakdown(issues: list[Issue]) -> str:
     counts = Counter(issue.severity for issue in issues)
     parts = [
@@ -588,6 +561,21 @@ def _severity_breakdown(issues: list[Issue]) -> str:
         if counts[severity]
     ]
     return ", ".join(parts)
+
+
+def _format_report_breakdown_suffix(report: LintReport) -> str:
+    parts = [
+        f"{count} {severity}"
+        for severity, count in (
+            ("high", report.high),
+            ("medium", report.medium),
+            ("low", report.low),
+        )
+        if count
+    ]
+    if not parts:
+        return ""
+    return f" ({', '.join(parts)})"
 
 
 def _select_examples(issues: list[Issue], limit: int) -> list[Issue]:

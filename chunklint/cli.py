@@ -11,7 +11,7 @@ from chunklint.engine import lint
 from chunklint.loader import load_chunks
 from chunklint.reporter import print_gate_report, print_report, report_json
 from chunklint.rules import ALL_RULES
-from chunklint.utils.severity import at_or_above, normalize_severity
+from chunklint.utils.severity import normalize_severity
 
 app = typer.Typer(help="Static analysis for RAG chunks.", no_args_is_help=True)
 console = Console()
@@ -30,7 +30,7 @@ def scan(
     ] = None,
     fail_on: Annotated[
         Optional[str],
-        typer.Option("--fail-on", help="Fail if issues at or above severity exist."),
+        typer.Option("--fail-on", help="Fail if issues with this exact severity exist."),
     ] = None,
     config: Annotated[
         Optional[Path],
@@ -59,7 +59,7 @@ def scan(
         output_format = output_format.lower().strip()
         if output_format not in {"text", "json"}:
             raise ValueError("--format must be text or json.")
-        fail_threshold = normalize_severity(fail_on) if fail_on is not None else None
+        selected_severity = normalize_severity(fail_on) if fail_on is not None else None
 
         chunks = load_chunks(path)
         report = lint(chunks, config_path=config)
@@ -73,10 +73,10 @@ def scan(
                 console.file.write(json_report + "\n")
                 console.file.flush()
             else:
-                if fail_threshold is not None:
+                if selected_severity is not None:
                     print_gate_report(
                         report,
-                        fail_threshold,
+                        selected_severity,
                         console=console,
                         verbose=verbose,
                         raw=raw,
@@ -93,7 +93,10 @@ def scan(
                         max_issues=max_issues,
                     )
 
-        if fail_threshold is not None and _has_issues_at_or_above(report.issues, fail_threshold):
+        if selected_severity is not None and _has_issues_with_severity(
+            report.issues,
+            selected_severity,
+        ):
             raise typer.Exit(1)
     except typer.Exit:
         raise
@@ -129,10 +132,10 @@ def rules() -> None:
         console.print(f"{severity.upper():7} {rule_id:24} {scope}")
 
 
-def _has_issues_at_or_above(issues, threshold: str | None) -> bool:
-    if threshold is None:
+def _has_issues_with_severity(issues, severity: str | None) -> bool:
+    if severity is None:
         return False
-    return any(at_or_above(issue.severity, threshold) for issue in issues)
+    return any(normalize_severity(issue.severity) == severity for issue in issues)
 
 
 if __name__ == "__main__":

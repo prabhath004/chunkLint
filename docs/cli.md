@@ -38,7 +38,7 @@ Use the demo fixture:
 chunklint scan examples/bad_chunks.json
 ```
 
-Fail on a severity threshold:
+Fail on a specific severity:
 
 ```bash
 chunklint scan chunks.json --fail-on high
@@ -46,12 +46,13 @@ chunklint scan chunks.json --fail-on medium
 chunklint scan chunks.json --fail-on low
 ```
 
-Threshold behavior is inclusive. `--fail-on medium` fails on medium and high
-issues. `--fail-on low` fails on any issue.
+`--fail-on` matches the selected severity exactly. `--fail-on high` fails only
+when high findings exist, `--fail-on medium` fails only when medium findings
+exist, and `--fail-on low` fails only when low findings exist.
 
-`--fail-on` is an inclusive gate. In text output, it prints structured gate
-tables for the summary, ignored lower-severity details, blocking root causes,
-and next steps. JSON output remains the full machine-readable scan.
+In text output, the gate shows an overall high/medium/low lint summary plus
+root causes for the selected severity. JSON output remains the full
+machine-readable scan.
 
 Write machine-readable output:
 
@@ -118,8 +119,8 @@ duplicate and repeated PDF noise detection.
 
 | Code | Meaning |
 | --- | --- |
-| `0` | Completed successfully and did not fail the selected threshold. |
-| `1` | Lint threshold failed. |
+| `0` | Completed successfully and did not fail the selected severity gate. |
+| `1` | Selected severity gate failed. |
 | `2` | Input file or config was invalid. |
 | `3` | Unexpected internal error. |
 

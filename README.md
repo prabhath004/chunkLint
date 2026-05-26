@@ -142,15 +142,17 @@ chunklint scan chunks.json --raw --max-issues 50
 
 Exit codes:
 
-- `0`: scan completed and did not fail the selected threshold
-- `1`: lint threshold failed, such as `--fail-on high`
+- `0`: scan completed and did not fail the selected severity gate
+- `1`: selected severity gate failed, such as `--fail-on high`
 - `2`: invalid input or invalid config
 - `3`: unexpected internal error
 
-`--fail-on` is an inclusive CI gate. In text output, it prints structured gate
-tables for the summary, ignored lower-severity details, blocking root causes,
-and next steps. JSON output still contains the full machine-readable scan. Use
-`--quiet` when you only want the exit code.
+`--fail-on` is an exact-severity CI gate. `--fail-on high` fails only on high
+findings, `--fail-on medium` fails only on medium findings, and `--fail-on low`
+fails only on low findings. In text output, the gate shows an overall
+high/medium/low lint summary plus root causes for the selected severity. JSON
+output still contains the full machine-readable scan. Use `--quiet` when you
+only want the exit code.
 
 ### `init`
 
