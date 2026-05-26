@@ -144,7 +144,11 @@ def build_recommendations(issues: list[Issue]) -> list[str]:
     counts = Counter(issue.rule_id for issue in issues)
     recommendations: list[str] = []
 
-    boundary_count = counts["starts_mid_sentence"] + counts["ends_mid_sentence"]
+    boundary_count = (
+        counts["starts_mid_sentence"]
+        + counts["ends_mid_sentence"]
+        + counts["broken_chunk_boundary"]
+    )
     if boundary_count:
         recommendations.append(
             "Boundary issues dominate. Try sentence-aware splitting, larger chunks, "

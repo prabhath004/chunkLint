@@ -83,6 +83,8 @@ Covers chunk boundary heuristics:
 - Colon-ended labels such as `Required documents:` are allowed.
 - Markdown table starts are not incorrectly flagged as mid-sentence starts.
 - Connector words and ignored start words can be customized through rule config.
+- Adjacent chunk pairs can trigger `broken_chunk_boundary` when one chunk ends
+  unfinished and the next starts as a continuation.
 
 ### `tests/test_table_rule.py`
 
@@ -111,6 +113,16 @@ Covers PDF extraction artifacts:
 
 - Page-label text triggers `pdf_noise`.
 - Repeated header/footer-style lines across chunks trigger `pdf_noise`.
+- Spaced PDF hyphenation such as `semi -structured` triggers `pdf_noise`.
+- Repeated punctuation spacing such as `that , on one hand ,` triggers `pdf_noise`.
+
+### `tests/test_reporter.py`
+
+Covers report usability:
+
+- Issue groups summarize repeated findings by rule.
+- JSON output includes `groups` and `recommendations`.
+- Recommendations are generated from dominant issue types.
 
 ## Generated Files
 

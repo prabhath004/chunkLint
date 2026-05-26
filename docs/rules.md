@@ -106,6 +106,9 @@ rules:
     enabled: true
     severity: medium
     allow_colon_endings: true
+  broken_chunk_boundary:
+    enabled: true
+    severity: high
   too_short:
     enabled: true
     severity: low
@@ -216,6 +219,21 @@ connector words like `and`, `because`, `which`, and `while`.
 It skips common cases where punctuation is not expected, such as markdown table
 rows, list items, code fences, URLs, headings, short labels, HTML tags, and
 colon-ended intro labels when `allow_colon_endings` is true.
+
+### `broken_chunk_boundary`
+
+Severity: high.
+
+Compares adjacent chunks and flags likely sentence splits across chunk
+boundaries. This catches higher-confidence cases from real RAG output, such as:
+
+```text
+chunk A ends:   The results demonstrated that, on the
+chunk B starts: qualitative and quantitative analysis...
+```
+
+The issue is attached to the second chunk because that is the chunk that starts
+with incomplete context.
 
 ### `too_short`
 

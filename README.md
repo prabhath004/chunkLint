@@ -132,6 +132,8 @@ chunklint scan chunks.json --format json
 chunklint scan chunks.json --format json --out report.json
 chunklint scan chunks.json --config chunklint.yml
 chunklint scan chunks.json --quiet
+chunklint scan chunks.json --verbose
+chunklint scan chunks.json --max-issues 50
 ```
 
 Exit codes:
@@ -353,6 +355,7 @@ Full rule and config reference: [docs/rules.md](docs/rules.md).
 | `missing_heading` | medium | chunk | Flags chunks without heading/title/section metadata. Page labels are not treated as headings. |
 | `starts_mid_sentence` | high | chunk | Flags likely mid-sentence starts using continuation punctuation, configurable connector words, lowercase starts, and false-positive exclusions for headings, code, tables, and known product/tool names. |
 | `ends_mid_sentence` | medium | chunk | Flags likely mid-sentence endings using missing punctuation, continuation punctuation, and trailing connector words while skipping headings, tables, code, URLs, and colon labels. |
+| `broken_chunk_boundary` | high | cross-chunk | Compares adjacent chunks and flags likely sentence splits across chunk boundaries. |
 | `too_short` | low | chunk | Flags chunks below `min_words`; raises to medium when heading context is missing. |
 | `too_long` | medium | chunk | Flags chunks above `max_words`. |
 | `broken_markdown_table` | high | chunk | Flags table fragments without markdown separator/header context. |
@@ -375,7 +378,11 @@ Medium: 2
 Low:    2
 ```
 
-JSON output is designed for CI, logs, or downstream tools:
+Text output groups issues by rule, recommends next steps, and shows the first
+20 detailed issues by default. Use `--verbose` to show every issue.
+
+JSON output is designed for CI, logs, or downstream tools. It includes summary,
+groups, recommendations, and raw issues:
 
 ```json
 {
@@ -386,6 +393,8 @@ JSON output is designed for CI, logs, or downstream tools:
     "medium": 2,
     "low": 2
   },
+  "groups": [],
+  "recommendations": [],
   "issues": [
     {
       "chunk_id": "chunk_2",
@@ -473,6 +482,7 @@ The `tests/` folder is the safety net for the first release:
 | `tests/test_code_rule.py` | Unclosed markdown code-fence detection. |
 | `tests/test_duplicate_rule.py` | Near-duplicate detection across chunks. |
 | `tests/test_pdf_noise_rule.py` | PDF page-label noise and repeated footer/header detection. |
+| `tests/test_reporter.py` | Grouped report summaries, JSON report shape, and recommendation generation. |
 
 More detail is in [docs/testing.md](docs/testing.md).
 

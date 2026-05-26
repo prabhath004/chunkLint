@@ -54,6 +54,8 @@ Write machine-readable output:
 ```bash
 chunklint scan chunks.json --format json
 chunklint scan chunks.json --format json --out report.json
+chunklint scan chunks.json --verbose
+chunklint scan chunks.json --max-issues 50
 ```
 
 Suppress terminal output while preserving the exit code:
@@ -61,6 +63,9 @@ Suppress terminal output while preserving the exit code:
 ```bash
 chunklint scan chunks.json --fail-on high --quiet
 ```
+
+By default, text output groups all issues and only prints the first 20 detailed
+issues. Use `--verbose` when you need every issue row.
 
 Load a specific config:
 
