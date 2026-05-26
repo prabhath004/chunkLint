@@ -133,7 +133,7 @@ chunklint scan chunks.json --format json --out report.json
 chunklint scan chunks.json --config chunklint.yml
 chunklint scan chunks.json --quiet
 chunklint scan chunks.json --verbose
-chunklint scan chunks.json --max-issues 50
+chunklint scan chunks.json --raw --max-issues 50
 ```
 
 Exit codes:
@@ -378,11 +378,14 @@ Medium: 2
 Low:    2
 ```
 
-Text output groups issues by rule, recommends next steps, and shows the first
-20 detailed issues by default. Use `--verbose` to show every issue.
+Text output groups related rules into root causes, recommends next steps, and
+shows a few examples for each root cause. `--verbose` includes snippets, and
+`--examples-per-rule` controls how many examples are shown. Use `--raw` when
+you need row-level findings, and use `--raw --max-issues 0` to show every issue
+row.
 
 JSON output is designed for CI, logs, or downstream tools. It includes summary,
-groups, recommendations, and raw issues:
+rule groups, root causes, recommendations, and raw issues:
 
 ```json
 {
@@ -394,6 +397,7 @@ groups, recommendations, and raw issues:
     "low": 2
   },
   "groups": [],
+  "root_causes": [],
   "recommendations": [],
   "issues": [
     {

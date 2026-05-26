@@ -1,7 +1,17 @@
 import json
+from io import StringIO
+
+from rich.console import Console
 
 from chunklint.models import Issue, LintReport
-from chunklint.reporter import build_recommendations, group_issues, report_json
+from chunklint.reporter import (
+    build_recommendations,
+    examples_by_root_cause,
+    group_issues,
+    group_root_causes,
+    print_report,
+    report_json,
+)
 
 
 def test_group_issues_summarizes_by_rule():
@@ -34,13 +44,102 @@ def test_report_json_includes_groups_and_recommendations():
     payload = json.loads(report_json(report))
 
     assert payload["groups"][0]["rule_id"] in {"starts_mid_sentence", "ends_mid_sentence"}
+    assert payload["root_causes"][0]["id"] == "sentence_boundaries"
     assert payload["recommendations"]
+
+
+def test_group_root_causes_combines_boundary_rules():
+    issues = [
+        issue("starts_mid_sentence", "high", "b"),
+        issue("ends_mid_sentence", "medium", "a"),
+        issue("broken_chunk_boundary", "high", "b"),
+        issue("missing_heading", "medium", "a"),
+    ]
+
+    root_causes = group_root_causes(issues)
+
+    assert root_causes[0].id == "sentence_boundaries"
+    assert root_causes[0].count == 3
+    assert root_causes[0].affected_chunks == 2
+    assert root_causes[0].rule_ids == (
+        "broken_chunk_boundary",
+        "starts_mid_sentence",
+        "ends_mid_sentence",
+    )
+
+
+def test_examples_prioritize_broken_boundaries():
+    issues = [
+        issue("starts_mid_sentence", "high", "b"),
+        issue("broken_chunk_boundary", "high", "c"),
+        issue("ends_mid_sentence", "medium", "a"),
+    ]
+
+    examples = examples_by_root_cause(issues, examples_per_rule=1)
+
+    assert examples[0][0].id == "sentence_boundaries"
+    assert examples[0][1][0].rule_id == "broken_chunk_boundary"
 
 
 def test_build_recommendations_prioritizes_pdf_noise():
     recommendations = build_recommendations([issue("pdf_noise", "low", "a")])
 
     assert "PDF noise" in recommendations[0]
+
+
+def test_print_report_hides_raw_rows_by_default():
+    report = report_with_issues(
+        [issue("starts_mid_sentence", "high", f"chunk-{index}") for index in range(5)]
+    )
+
+    output = render_report(report)
+
+    assert "Root causes" in output
+    assert "Examples by root cause" in output
+    assert "Raw issue rows are hidden" in output
+    assert "chunk-4" not in output
+
+
+def test_print_report_raw_respects_max_issues():
+    report = report_with_issues(
+        [issue("starts_mid_sentence", "high", f"chunk-{index}") for index in range(5)]
+    )
+
+    output = render_report(report, raw=True, max_issues=2)
+
+    assert "Raw issue rows:" in output
+    assert "showing first 2 of 5" in output
+    assert "chunk-0" in output
+    assert "chunk-4" not in output
+
+
+def test_print_report_raw_zero_shows_all_rows():
+    report = report_with_issues(
+        [issue("starts_mid_sentence", "high", f"chunk-{index}") for index in range(3)]
+    )
+
+    output = render_report(report, raw=True, max_issues=0)
+
+    assert "showing first" not in output
+    assert "chunk-2" in output
+
+
+def report_with_issues(issues: list[Issue]) -> LintReport:
+    return LintReport(
+        chunks_scanned=len(issues),
+        issues_found=len(issues),
+        high=sum(1 for current in issues if current.severity == "high"),
+        medium=sum(1 for current in issues if current.severity == "medium"),
+        low=sum(1 for current in issues if current.severity == "low"),
+        issues=issues,
+    )
+
+
+def render_report(report: LintReport, **kwargs: object) -> str:
+    buffer = StringIO()
+    console = Console(file=buffer, force_terminal=False, width=140)
+    print_report(report, console=console, **kwargs)
+    return buffer.getvalue()
 
 
 def issue(rule_id: str, severity: str, chunk_id: str) -> Issue:

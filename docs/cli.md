@@ -55,7 +55,9 @@ Write machine-readable output:
 chunklint scan chunks.json --format json
 chunklint scan chunks.json --format json --out report.json
 chunklint scan chunks.json --verbose
-chunklint scan chunks.json --max-issues 50
+chunklint scan chunks.json --examples-per-rule 5
+chunklint scan chunks.json --raw --max-issues 50
+chunklint scan chunks.json --raw --max-issues 0
 ```
 
 Suppress terminal output while preserving the exit code:
@@ -64,8 +66,11 @@ Suppress terminal output while preserving the exit code:
 chunklint scan chunks.json --fail-on high --quiet
 ```
 
-By default, text output groups all issues and only prints the first 20 detailed
-issues. Use `--verbose` when you need every issue row.
+By default, text output groups related rules into root causes and shows a few
+examples for each root cause. Use `--verbose` to include snippets, and
+`--examples-per-rule` to control how many examples are shown. Use `--raw` for
+row-level findings; `--max-issues` limits raw rows and `--max-issues 0` prints
+every raw row.
 
 Load a specific config:
 

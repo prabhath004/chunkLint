@@ -120,8 +120,10 @@ Covers PDF extraction artifacts:
 
 Covers report usability:
 
-- Issue groups summarize repeated findings by rule.
-- JSON output includes `groups` and `recommendations`.
+- Root causes combine related rules into developer-facing remediation groups.
+- Issue groups still summarize repeated findings by rule for JSON consumers.
+- JSON output includes `groups`, `root_causes`, and `recommendations`.
+- Text output hides raw rows unless `--raw` is requested.
 - Recommendations are generated from dominant issue types.
 
 ## Generated Files

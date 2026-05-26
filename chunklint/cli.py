@@ -24,17 +24,34 @@ def scan(
         str,
         typer.Option("--format", help="Output format: text or json."),
     ] = "text",
-    out: Annotated[Optional[Path], typer.Option("--out", help="Write JSON report to a file.")] = None,
+    out: Annotated[
+        Optional[Path],
+        typer.Option("--out", help="Write JSON report to a file."),
+    ] = None,
     fail_on: Annotated[
         Optional[str],
         typer.Option("--fail-on", help="Fail if issues at or above severity exist."),
     ] = None,
-    config: Annotated[Optional[Path], typer.Option("--config", help="Path to chunklint.yml.")] = None,
+    config: Annotated[
+        Optional[Path],
+        typer.Option("--config", help="Path to chunklint.yml."),
+    ] = None,
     quiet: Annotated[bool, typer.Option("--quiet", help="Suppress terminal output.")] = False,
-    verbose: Annotated[bool, typer.Option("--verbose", help="Show every issue in text output.")] = False,
+    verbose: Annotated[
+        bool,
+        typer.Option("--verbose", help="Show snippets with grouped examples in text output."),
+    ] = False,
+    raw: Annotated[
+        bool,
+        typer.Option("--raw", help="Show raw issue rows after the grouped summary."),
+    ] = False,
+    examples_per_rule: Annotated[
+        int,
+        typer.Option("--examples-per-rule", help="Examples to show for each root cause."),
+    ] = 3,
     max_issues: Annotated[
         int,
-        typer.Option("--max-issues", help="Detailed issues to show before truncating."),
+        typer.Option("--max-issues", help="Raw issue rows to show with --raw. Use 0 for all."),
     ] = 20,
 ) -> None:
     """Scan exported chunks."""
@@ -56,7 +73,14 @@ def scan(
             if output_format == "json":
                 console.print(json_report)
             else:
-                print_report(report, console=console, verbose=verbose, max_issues=max_issues)
+                print_report(
+                    report,
+                    console=console,
+                    verbose=verbose,
+                    raw=raw,
+                    examples_per_rule=examples_per_rule,
+                    max_issues=max_issues,
+                )
 
         if fail_on and any(at_or_above(issue.severity, fail_on) for issue in report.issues):
             raise typer.Exit(1)
