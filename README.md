@@ -371,7 +371,8 @@ Terminal output is designed for humans:
 ChunkLint Report
 
 Chunks scanned: 3
-Issues found: 6
+Raw findings: 6
+Actionable root causes: 2
 
 High:   2
 Medium: 2
@@ -379,9 +380,9 @@ Low:    2
 ```
 
 Text output groups related rules into root causes, recommends next steps, and
-shows a few examples for each root cause. `--verbose` includes snippets, and
+keeps examples hidden by default. `--verbose` shows examples with snippets, and
 `--examples-per-rule` controls how many examples are shown. Use `--raw` when
-you need row-level findings, and use `--raw --max-issues 0` to show every issue
+you need row-level findings, and use `--raw --max-issues 0` to show every raw
 row.
 
 JSON output is designed for CI, logs, or downstream tools. It includes summary,

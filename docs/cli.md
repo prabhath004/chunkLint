@@ -66,8 +66,8 @@ Suppress terminal output while preserving the exit code:
 chunklint scan chunks.json --fail-on high --quiet
 ```
 
-By default, text output groups related rules into root causes and shows a few
-examples for each root cause. Use `--verbose` to include snippets, and
+By default, text output groups related rules into root causes and keeps examples
+hidden. Use `--verbose` to show examples with snippets, and
 `--examples-per-rule` to control how many examples are shown. Use `--raw` for
 row-level findings; `--max-issues` limits raw rows and `--max-issues 0` prints
 every raw row.

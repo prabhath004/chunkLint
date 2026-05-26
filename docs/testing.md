@@ -123,6 +123,7 @@ Covers report usability:
 - Root causes combine related rules into developer-facing remediation groups.
 - Issue groups still summarize repeated findings by rule for JSON consumers.
 - JSON output includes `groups`, `root_causes`, and `recommendations`.
+- Text output hides examples unless `--verbose` is requested.
 - Text output hides raw rows unless `--raw` is requested.
 - Recommendations are generated from dominant issue types.
 

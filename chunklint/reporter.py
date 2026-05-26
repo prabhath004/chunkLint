@@ -117,10 +117,10 @@ def print_report(
     console.print("[bold]ChunkLint Report[/bold]")
     console.print()
     console.print(f"Chunks scanned: {report.chunks_scanned}")
-    console.print(f"Issues found: {report.issues_found}")
     root_causes = group_root_causes(report.issues)
+    console.print(f"Raw findings: {report.issues_found}")
     if root_causes:
-        console.print(f"Root causes: {len(root_causes)}")
+        console.print(f"Actionable root causes: {len(root_causes)}")
     console.print()
     console.print(f"High:   {report.high}")
     console.print(f"Medium: {report.medium}")
@@ -156,14 +156,15 @@ def print_report(
         for recommendation in recommendations:
             console.print(f"- {recommendation}")
 
-    console.print()
-    console.print("[bold]Examples by root cause:[/bold]")
-    _print_examples(
-        report.issues,
-        console=console,
-        examples_per_rule=_examples_to_show(examples_per_rule),
-        include_snippets=verbose,
-    )
+    if verbose:
+        console.print()
+        console.print("[bold]Examples by root cause:[/bold]")
+        _print_examples(
+            report.issues,
+            console=console,
+            examples_per_rule=_examples_to_show(examples_per_rule),
+            include_snippets=True,
+        )
 
     if raw:
         console.print()
@@ -171,8 +172,8 @@ def print_report(
     else:
         console.print()
         console.print(
-            "[dim]Raw issue rows are hidden. Use --raw for row-level debugging; "
-            "use --raw --max-issues 0 to print every row.[/dim]"
+            "[dim]Use --verbose for examples with snippets. Use --raw for row-level "
+            "debugging; use --raw --max-issues 0 to print every row.[/dim]"
         )
 
 

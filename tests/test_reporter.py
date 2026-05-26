@@ -87,7 +87,7 @@ def test_build_recommendations_prioritizes_pdf_noise():
     assert "PDF noise" in recommendations[0]
 
 
-def test_print_report_hides_raw_rows_by_default():
+def test_print_report_is_summary_first_by_default():
     report = report_with_issues(
         [issue("starts_mid_sentence", "high", f"chunk-{index}") for index in range(5)]
     )
@@ -95,9 +95,23 @@ def test_print_report_hides_raw_rows_by_default():
     output = render_report(report)
 
     assert "Root causes" in output
-    assert "Examples by root cause" in output
-    assert "Raw issue rows are hidden" in output
+    assert "Raw findings: 5" in output
+    assert "Actionable root causes: 1" in output
+    assert "Examples by root cause" not in output
+    assert "Use --verbose for examples" in output
     assert "chunk-4" not in output
+
+
+def test_print_report_verbose_shows_examples_with_snippets():
+    report = report_with_issues(
+        [issue("starts_mid_sentence", "high", f"chunk-{index}") for index in range(2)]
+    )
+
+    output = render_report(report, verbose=True)
+
+    assert "Examples by root cause" in output
+    assert "chunk-0" in output
+    assert "snippet:" in output
 
 
 def test_print_report_raw_respects_max_issues():
