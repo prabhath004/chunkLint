@@ -23,11 +23,6 @@ classifiers = [
   "Topic :: Software Development :: Quality Assurance",
 ]
 
-[project.urls]
-Homepage = "https://github.com/prabhath004/chunkLint"
-Repository = "https://github.com/prabhath004/chunkLint"
-Issues = "https://github.com/prabhath004/chunkLint/issues"
-Changelog = "https://github.com/prabhath004/chunkLint/blob/main/CHANGELOG.md"
 dependencies = [
   "typer>=0.12.0",
   "rich>=13.0.0",
@@ -35,6 +30,12 @@ dependencies = [
   "pyyaml>=6.0.0",
   "rapidfuzz>=3.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/prabhath004/chunkLint"
+Repository = "https://github.com/prabhath004/chunkLint"
+Issues = "https://github.com/prabhath004/chunkLint/issues"
+Changelog = "https://github.com/prabhath004/chunkLint/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 langchain = [
