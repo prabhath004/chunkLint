@@ -40,7 +40,7 @@ def test_cli_fail_on_prints_gate_status(tmp_path):
     assert "Threshold: high" in result.output
     assert "Blocking findings: 2 (2 high)" in result.output
     assert "Lower-severity findings hidden: 4 (2 medium, 2 low)" in result.output
-    assert "Hidden root causes:" in result.output
+    assert "Hidden lower-severity details:" in result.output
     assert "Shown findings:" not in result.output
     assert "Raw findings:" not in result.output
     assert "Blocking root causes:" in result.output
@@ -61,7 +61,7 @@ def test_cli_fail_on_medium_hides_low_only(tmp_path):
     assert "Threshold: medium" in result.output
     assert "Blocking findings: 4 (2 high, 2 medium)" in result.output
     assert "Lower-severity findings hidden: 2 (2 low)" in result.output
-    assert "Hidden root causes: Chunk size (2)" in result.output
+    assert "Hidden lower-severity details: Chunk size (+2 lower)" in result.output
     assert "Chunk size" in result.output
     assert "Missing retrieval" in result.output
     assert "context" in result.output

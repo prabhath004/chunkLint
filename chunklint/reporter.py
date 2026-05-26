@@ -229,7 +229,8 @@ def print_gate_report(
             f"{_format_breakdown_suffix(non_blocking_issues)}"
         )
         console.print(
-            f"Hidden root causes: {_format_root_cause_summary(non_blocking_issues)}"
+            "Hidden lower-severity details: "
+            f"{_format_hidden_root_cause_summary(non_blocking_issues, blocking_root_causes)}"
         )
     console.print(f"Chunks scanned: {report.chunks_scanned}")
 
@@ -503,9 +504,15 @@ def _format_breakdown_suffix(issues: list[Issue]) -> str:
     return f" ({breakdown})"
 
 
-def _format_root_cause_summary(issues: list[Issue]) -> str:
+def _format_hidden_root_cause_summary(
+    issues: list[Issue],
+    blocking_root_causes: list[RootCauseGroup],
+) -> str:
+    blocking_root_cause_ids = {root_cause.id for root_cause in blocking_root_causes}
     return ", ".join(
-        f"{root_cause.title} ({root_cause.count})"
+        f"{root_cause.title} (+{root_cause.count} lower)"
+        if root_cause.id in blocking_root_cause_ids
+        else f"{root_cause.title} ({root_cause.count})"
         for root_cause in group_root_causes(issues)
     )
 

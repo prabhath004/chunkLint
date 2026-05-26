@@ -148,7 +148,7 @@ Exit codes:
 - `3`: unexpected internal error
 
 `--fail-on` is an inclusive CI gate. In text output, it prints a dedicated gate
-view with only blocking findings, plus a summary of lower-severity root causes
+view with only blocking findings, plus a summary of lower-severity details
 hidden by the gate. JSON output still contains the full machine-readable scan.
 Use `--quiet` when you only want the exit code.
 
