@@ -51,8 +51,13 @@ if report.ok:
     vectorstore.add_documents(chunks)
 
 if report.has_high_issues:
-    report.print()
+    raise RuntimeError(f"ChunkLint found {report.high} high-severity findings.")
 ```
+
+SDK calls are quiet by default. They return a report object and do not print to
+stdout or stderr. Use report fields for application logic. For a human terminal
+report, export chunks and run the CLI, for example
+`chunklint scan chunks.json --verbose`.
 
 Useful fields:
 
@@ -107,12 +112,14 @@ from chunklint.adapters.langchain import export_documents, lint_documents
 
 chunks = splitter.split_documents(docs)
 report = lint_documents(chunks)
+export_documents(chunks, "chunks.json")
 
 if report.has_high_issues:
-    report.print()
-    raise RuntimeError("ChunkLint failed")
+    raise RuntimeError(
+        "ChunkLint found high-severity findings. "
+        "Run: chunklint scan chunks.json --verbose"
+    )
 
-export_documents(chunks, "chunks.json")
 vectorstore.add_documents(chunks)
 ```
 
@@ -132,12 +139,14 @@ from chunklint.adapters.llamaindex import export_nodes, lint_nodes
 
 nodes = parser.get_nodes_from_documents(documents)
 report = lint_nodes(nodes)
+export_nodes(nodes, "chunks.json")
 
 if report.has_high_issues:
-    report.print()
-    raise RuntimeError("ChunkLint failed")
+    raise RuntimeError(
+        "ChunkLint found high-severity findings. "
+        "Run: chunklint scan chunks.json --verbose"
+    )
 
-export_nodes(nodes, "chunks.json")
 index = VectorStoreIndex(nodes)
 ```
 
@@ -164,4 +173,3 @@ export_nodes(llamaindex_nodes, "chunks.jsonl")
 
 The extension controls the output format. `.jsonl` writes one chunk per line;
 other paths write a formatted JSON array.
-

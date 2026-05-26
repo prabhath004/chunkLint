@@ -28,15 +28,19 @@ usually discover it much later when retrieval gives poor context to the model.
 ChunkLint adds a quality gate between chunking and embedding:
 
 ```python
-from chunklint.adapters.langchain import lint_documents
+from chunklint.adapters.langchain import export_documents, lint_documents
 
 docs = loader.load()
 chunks = splitter.split_documents(docs)
 
 report = lint_documents(chunks)
+export_documents(chunks, "chunks.json")
+
 if report.has_high_issues:
-    report.print()
-    raise RuntimeError("ChunkLint failed")
+    raise RuntimeError(
+        "ChunkLint found high-severity findings. "
+        "Run: chunklint scan chunks.json --verbose"
+    )
 
 vectorstore.add_documents(chunks)
 ```
@@ -200,8 +204,7 @@ chunks = [
 report = lint(chunks)
 
 if report.has_high_issues:
-    report.print()
-    raise RuntimeError("ChunkLint failed")
+    raise RuntimeError(f"ChunkLint found {report.high} high-severity findings.")
 ```
 
 The returned report includes counts and issue objects:
@@ -226,12 +229,14 @@ docs = loader.load()
 chunks = splitter.split_documents(docs)
 
 report = lint_documents(chunks)
+export_documents(chunks, "chunks.json")
 
 if report.has_high_issues:
-    report.print()
-    raise RuntimeError("ChunkLint failed")
+    raise RuntimeError(
+        "ChunkLint found high-severity findings. "
+        "Run: chunklint scan chunks.json --verbose"
+    )
 
-export_documents(chunks, "chunks.json")
 vectorstore.add_documents(chunks)
 ```
 
@@ -245,12 +250,14 @@ from chunklint.adapters.llamaindex import export_nodes, lint_nodes
 
 nodes = parser.get_nodes_from_documents(documents)
 report = lint_nodes(nodes)
+export_nodes(nodes, "chunks.json")
 
 if report.has_high_issues:
-    report.print()
-    raise RuntimeError("ChunkLint failed")
+    raise RuntimeError(
+        "ChunkLint found high-severity findings. "
+        "Run: chunklint scan chunks.json --verbose"
+    )
 
-export_nodes(nodes, "chunks.json")
 index = VectorStoreIndex(nodes)
 ```
 
