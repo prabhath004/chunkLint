@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "chunklint"
-version = "1.0.0"
+version = "0.1.0"
 description = "A static analyzer for RAG chunks"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -12,7 +12,7 @@ license = { text = "MIT" }
 authors = [{ name = "ChunkLint contributors" }]
 keywords = ["rag", "lint", "chunks", "vector-database", "cli"]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 3 - Alpha",
   "Environment :: Console",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",

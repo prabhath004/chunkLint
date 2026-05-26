@@ -544,10 +544,12 @@ python -m ruff check .
 
 ## Project Status
 
-ChunkLint v1.0.0 is the first stable release. The CLI, Python SDK, framework
-adapters, rules, config schema, and JSON output (`schema_version: 1`) are all
-considered public surface and follow semantic versioning. The `CHANGELOG.md`
-file tracks notable changes between releases.
+ChunkLint v0.1.0 is the first public release on PyPI. The CLI, Python SDK,
+framework adapters, rules, and config schema are usable today, and the JSON
+output is independently versioned via `schema_version: 1`. While the project
+is still on `0.x`, minor versions may introduce breaking changes as the API
+gets real-world feedback. The `CHANGELOG.md` file tracks notable changes
+between releases.
 
 ## License
 
