@@ -61,7 +61,18 @@ def scan(
         typer.Option("--max-issues", help="Raw issue rows to show with --raw. Use 0 for all."),
     ] = 20,
 ) -> None:
-    """Scan exported chunks."""
+    """Scan exported chunks.
+
+    Examples:
+
+      chunklint scan chunks.json
+      chunklint scan chunks.json --fail-on high
+      chunklint scan chunks.json --fail-on high,medium
+      chunklint scan chunks.json --format json --out report.json
+      chunklint scan chunks.json --verbose
+      chunklint scan chunks.json --raw --max-issues 0
+      chunklint scan chunks.json --config chunklint.yml --quiet
+    """
     try:
         output_format = output_format.lower().strip()
         if output_format not in {"text", "json"}:
