@@ -10,6 +10,8 @@ from chunklint.utils.text import non_empty_lines
 PAGE_RE = re.compile(r"^(?:page\s+)?\d+(?:\s+of\s+\d+)?$", re.IGNORECASE)
 PAGE_LABEL_RE = re.compile(r"\bpage\s+\d+(?:\s+of\s+\d+)?\b", re.IGNORECASE)
 HYPHENATED_RE = re.compile(r"\w-\n\w")
+SPACED_HYPHEN_RE = re.compile(r"\b\w{2,}\s+-\s*\w{2,}\b|\b\w{2,}-\s+\w{2,}\b")
+SPACED_PUNCTUATION_RE = re.compile(r"\w\s+[,.;:]\s")
 
 
 class PdfNoiseRule(CrossChunkRule):
@@ -57,6 +59,28 @@ class PdfNoiseRule(CrossChunkRule):
                     )
                 )
                 continue
+            if SPACED_HYPHEN_RE.search(text):
+                issues.append(
+                    self.issue(
+                        chunk,
+                        context,
+                        reason="Chunk contains spaced PDF hyphenation artifacts.",
+                        why_it_matters="PDF extraction can insert spaces around hyphens and split words.",
+                        fix="Normalize spaced hyphens before chunking, for example 'semi -structured' to 'semi-structured'.",
+                    )
+                )
+                continue
+            if _has_excessive_spaced_punctuation(text):
+                issues.append(
+                    self.issue(
+                        chunk,
+                        context,
+                        reason="Chunk contains repeated PDF punctuation spacing artifacts.",
+                        why_it_matters="Extraction artifacts add noisy tokens and can weaken matching.",
+                        fix="Normalize whitespace around punctuation before splitting.",
+                    )
+                )
+                continue
             if _line_break_ratio(text) > context.config.thresholds.max_line_break_ratio:
                 issues.append(
                     self.issue(
@@ -93,6 +117,10 @@ def _line_break_ratio(text: str) -> float:
     return text.count("\n") / max(len(stripped), 1)
 
 
+def _has_excessive_spaced_punctuation(text: str) -> bool:
+    return len(SPACED_PUNCTUATION_RE.findall(text)) >= 2
+
+
 def _repeated_edge_lines(chunks: list[Chunk]) -> set[str]:
     candidates: list[str] = []
     for chunk in chunks:
@@ -105,4 +133,3 @@ def _repeated_edge_lines(chunks: list[Chunk]) -> set[str]:
         return set()
     minimum = max(3, int(len(chunks) * 0.3))
     return {line for line, count in counts.items() if count >= minimum}
-
