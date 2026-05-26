@@ -88,6 +88,27 @@ def test_build_recommendations_prioritizes_pdf_noise():
     assert "PDF noise" in recommendations[0]
 
 
+def test_build_recommendations_quantifies_with_percentages():
+    issues = [
+        issue("starts_mid_sentence", "high", "chunk_a"),
+        issue("starts_mid_sentence", "high", "chunk_b"),
+        issue("pdf_noise", "low", "chunk_a"),
+    ]
+
+    recommendations = build_recommendations(issues, chunks_scanned=4)
+
+    boundary = next(rec for rec in recommendations if "Boundary" in rec)
+    pdf = next(rec for rec in recommendations if "PDF noise" in rec)
+    assert "affects 2 of 4 chunks, 50%" in boundary
+    assert "affects 1 of 4 chunks" in pdf
+
+
+def test_build_recommendations_omits_percent_when_total_unknown():
+    recommendations = build_recommendations([issue("pdf_noise", "low", "a")])
+
+    assert "affects 1 chunks" in recommendations[0]
+
+
 def test_print_report_is_summary_first_by_default():
     report = report_with_issues(
         [issue("starts_mid_sentence", "high", f"chunk-{index}") for index in range(5)]

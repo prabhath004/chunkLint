@@ -186,7 +186,7 @@ def print_report(
         console.print("[bold]Top offending chunks:[/bold]")
         _print_top_chunks_table(offenders, console=console)
 
-    recommendations = build_recommendations(report.issues)
+    recommendations = build_recommendations(report.issues, report.chunks_scanned)
     if recommendations:
         console.print()
         console.print("[bold]Recommended next steps:[/bold]")
@@ -279,7 +279,7 @@ def print_gate_report(
         console.print("[bold]Top offending chunks[/bold]")
         _print_top_chunks_table(offenders, console=console)
 
-    recommendations = build_recommendations(blocking_issues)
+    recommendations = build_recommendations(blocking_issues, report.chunks_scanned)
     if recommendations:
         console.print()
         console.print("[bold]Next Steps[/bold]")
@@ -458,7 +458,7 @@ def report_json(report: LintReport) -> str:
     payload = report.as_json_dict()
     payload["groups"] = [asdict(group) for group in group_issues(report.issues)]
     payload["root_causes"] = [asdict(root_cause) for root_cause in group_root_causes(report.issues)]
-    payload["recommendations"] = build_recommendations(report.issues)
+    payload["recommendations"] = build_recommendations(report.issues, report.chunks_scanned)
     return json.dumps(payload, indent=2, ensure_ascii=False)
 
 
@@ -591,8 +591,31 @@ def examples_by_root_cause(
     return result
 
 
-def build_recommendations(issues: list[Issue]) -> list[str]:
+def build_recommendations(
+    issues: list[Issue],
+    chunks_scanned: int | None = None,
+) -> list[str]:
     counts = Counter(issue.rule_id for issue in issues)
+    by_rule: dict[str, list[Issue]] = {}
+    for issue in issues:
+        by_rule.setdefault(issue.rule_id, []).append(issue)
+
+    def affected_chunks(*rule_ids: str) -> int:
+        seen: set[object] = set()
+        for rule_id in rule_ids:
+            for index, issue in enumerate(by_rule.get(rule_id, [])):
+                seen.add(issue.chunk_id or issue.source or (rule_id, index))
+        return len(seen)
+
+    def annotate(text: str, *rule_ids: str) -> str:
+        affected = affected_chunks(*rule_ids)
+        if not affected:
+            return text
+        if chunks_scanned and chunks_scanned > 0:
+            pct = max(1, round((affected / chunks_scanned) * 100))
+            return f"{text} (affects {affected} of {chunks_scanned} chunks, {pct}%)"
+        return f"{text} (affects {affected} chunks)"
+
     recommendations: list[str] = []
 
     boundary_count = (
@@ -602,33 +625,66 @@ def build_recommendations(issues: list[Issue]) -> list[str]:
     )
     if boundary_count:
         recommendations.append(
-            "Boundary issues dominate. Try sentence-aware splitting, larger chunks, "
-            "or more overlap before embedding."
+            annotate(
+                "Boundary issues dominate. Try sentence-aware splitting, larger chunks, "
+                "or more overlap before embedding.",
+                "starts_mid_sentence",
+                "ends_mid_sentence",
+                "broken_chunk_boundary",
+            )
         )
     if counts["pdf_noise"]:
         recommendations.append(
-            "PDF noise was detected. Strip page numbers/repeated headers and normalize "
-            "PDF whitespace before chunking."
+            annotate(
+                "PDF noise was detected. Strip page numbers/repeated headers and normalize "
+                "PDF whitespace before chunking.",
+                "pdf_noise",
+            )
         )
     if counts["missing_heading"]:
         recommendations.append(
-            "Add section/title metadata during loading or post-processing so chunks keep "
-            "retrievable context."
+            annotate(
+                "Add section/title metadata during loading or post-processing so chunks keep "
+                "retrievable context.",
+                "missing_heading",
+            )
         )
     if counts["broken_markdown_table"]:
         recommendations.append(
-            "Repeat markdown table headers in every table chunk or split tables as whole blocks."
+            annotate(
+                "Repeat markdown table headers in every table chunk or split tables as "
+                "whole blocks.",
+                "broken_markdown_table",
+            )
         )
     if counts["broken_code_block"]:
-        recommendations.append("Keep fenced code blocks intact when splitting documentation.")
+        recommendations.append(
+            annotate(
+                "Keep fenced code blocks intact when splitting documentation.",
+                "broken_code_block",
+            )
+        )
     if counts["near_duplicate"]:
-        recommendations.append("Reduce splitter overlap or deduplicate chunks before embedding.")
+        recommendations.append(
+            annotate(
+                "Reduce splitter overlap or deduplicate chunks before embedding.",
+                "near_duplicate",
+            )
+        )
     if counts["too_short"] > counts["too_long"]:
         recommendations.append(
-            "Merge tiny chunks with neighboring context or lower split aggressiveness."
+            annotate(
+                "Merge tiny chunks with neighboring context or lower split aggressiveness.",
+                "too_short",
+            )
         )
     elif counts["too_long"]:
-        recommendations.append("Split very large chunks by section or paragraph before embedding.")
+        recommendations.append(
+            annotate(
+                "Split very large chunks by section or paragraph before embedding.",
+                "too_long",
+            )
+        )
 
     return recommendations[:5]
 
