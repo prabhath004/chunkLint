@@ -10,3 +10,9 @@ build/
 .venv/
 venv/
 
+# macOS
+.DS_Store
+
+# Local scratch / test artifacts that should never enter commits
+rtest/
+
