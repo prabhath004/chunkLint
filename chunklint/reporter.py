@@ -43,6 +43,15 @@ class RootCauseGroup:
     fix: str
 
 
+@dataclass(frozen=True)
+class ChunkOffender:
+    chunk_label: str
+    source: str | None
+    count: int
+    highest_severity: str
+    rule_summary: str
+
+
 SEVERITY_RANK = {"low": 1, "medium": 2, "high": 3}
 SEVERITY_BADGES = {
     "high": "[bold red]HIGH[/bold red]",
@@ -171,6 +180,12 @@ def print_report(
         )
     console.print(root_table)
 
+    offenders = top_offending_chunks(report.issues)
+    if offenders:
+        console.print()
+        console.print("[bold]Top offending chunks:[/bold]")
+        _print_top_chunks_table(offenders, console=console)
+
     recommendations = build_recommendations(report.issues)
     if recommendations:
         console.print()
@@ -257,6 +272,12 @@ def print_gate_report(
     else:
         console.print(f"[bold]Blocking Root Causes ({threshold_label})[/bold]")
     _print_root_cause_table(blocking_root_causes, console=console)
+
+    offenders = top_offending_chunks(blocking_issues)
+    if offenders:
+        console.print()
+        console.print("[bold]Top offending chunks[/bold]")
+        _print_top_chunks_table(offenders, console=console)
 
     recommendations = build_recommendations(blocking_issues)
     if recommendations:
@@ -408,6 +429,22 @@ def _print_root_cause_table(
     console.print(table)
 
 
+def _print_top_chunks_table(offenders: list[ChunkOffender], *, console: Console) -> None:
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Chunk")
+    table.add_column("Issues", justify="right")
+    table.add_column("Max")
+    table.add_column("Top rules")
+    for offender in offenders:
+        table.add_row(
+            offender.chunk_label,
+            str(offender.count),
+            _severity_badge(offender.highest_severity),
+            offender.rule_summary,
+        )
+    console.print(table)
+
+
 def _print_next_steps_table(recommendations: list[str], *, console: Console) -> None:
     table = Table(show_header=True, header_style="bold")
     table.add_column("#", justify="right")
@@ -500,6 +537,46 @@ def group_root_causes(issues: list[Issue]) -> list[RootCauseGroup]:
         ),
         reverse=True,
     )
+
+
+def top_offending_chunks(issues: list[Issue], limit: int = 5) -> list[ChunkOffender]:
+    if not issues:
+        return []
+    by_chunk: dict[str, list[Issue]] = {}
+    sources: dict[str, str | None] = {}
+    for issue in issues:
+        label = issue.chunk_id or issue.source or "-"
+        by_chunk.setdefault(label, []).append(issue)
+        sources.setdefault(label, issue.source)
+    offenders: list[ChunkOffender] = []
+    for label, chunk_issues in by_chunk.items():
+        highest = max(chunk_issues, key=lambda issue: SEVERITY_RANK.get(issue.severity, 0))
+        rule_counts = Counter(issue.rule_id for issue in chunk_issues)
+        ordered_rules = [rule for rule, _ in rule_counts.most_common()]
+        top_rules = ordered_rules[:3]
+        extra = len(ordered_rules) - len(top_rules)
+        rule_summary = ", ".join(top_rules)
+        if extra > 0:
+            rule_summary += f", +{extra}"
+        offenders.append(
+            ChunkOffender(
+                chunk_label=label,
+                source=sources.get(label),
+                count=len(chunk_issues),
+                highest_severity=highest.severity,
+                rule_summary=rule_summary,
+            )
+        )
+    offenders.sort(
+        key=lambda offender: (
+            offender.count,
+            SEVERITY_RANK.get(offender.highest_severity, 0),
+            offender.chunk_label,
+        ),
+        reverse=True,
+    )
+    top = [offender for offender in offenders if offender.count >= 2][:max(limit, 0)]
+    return top
 
 
 def examples_by_root_cause(

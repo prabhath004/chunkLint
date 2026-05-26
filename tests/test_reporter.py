@@ -11,6 +11,7 @@ from chunklint.reporter import (
     group_root_causes,
     print_report,
     report_json,
+    top_offending_chunks,
 )
 
 
@@ -138,6 +139,46 @@ def test_print_report_raw_zero_shows_all_rows():
 
     assert "showing first" not in output
     assert "chunk-2" in output
+
+
+def test_top_offending_chunks_ranks_by_issue_count():
+    issues = [
+        issue("starts_mid_sentence", "high", "chunk_a"),
+        issue("pdf_noise", "low", "chunk_a"),
+        issue("missing_heading", "medium", "chunk_a"),
+        issue("starts_mid_sentence", "high", "chunk_b"),
+        issue("missing_heading", "medium", "chunk_b"),
+        issue("starts_mid_sentence", "high", "chunk_c"),
+    ]
+
+    offenders = top_offending_chunks(issues)
+
+    assert [offender.chunk_label for offender in offenders] == ["chunk_a", "chunk_b"]
+    assert offenders[0].count == 3
+    assert offenders[0].highest_severity == "high"
+
+
+def test_top_offending_chunks_skips_single_issue_chunks():
+    issues = [
+        issue("starts_mid_sentence", "high", "chunk_a"),
+        issue("pdf_noise", "low", "chunk_b"),
+    ]
+
+    assert top_offending_chunks(issues) == []
+
+
+def test_top_offending_chunks_table_appears_in_default_report():
+    issues = [
+        issue("starts_mid_sentence", "high", "chunk_dense"),
+        issue("pdf_noise", "low", "chunk_dense"),
+        issue("missing_heading", "medium", "chunk_dense"),
+    ]
+    report = report_with_issues(issues)
+
+    output = render_report(report)
+
+    assert "Top offending chunks" in output
+    assert "chunk_dense" in output
 
 
 def report_with_issues(issues: list[Issue]) -> LintReport:
