@@ -44,6 +44,16 @@ class RootCauseGroup:
 
 
 SEVERITY_RANK = {"low": 1, "medium": 2, "high": 3}
+SEVERITY_BADGES = {
+    "high": "[bold red]HIGH[/bold red]",
+    "medium": "[yellow]MEDIUM[/yellow]",
+    "low": "[cyan]LOW[/cyan]",
+}
+
+
+def _severity_badge(severity: str) -> str:
+    return SEVERITY_BADGES.get(severity.lower(), severity.upper())
+
 ROOT_CAUSE_SPECS = (
     RootCauseSpec(
         id="sentence_boundaries",
@@ -154,7 +164,7 @@ def print_report(
             root_cause.title,
             str(root_cause.count),
             str(root_cause.affected_chunks),
-            root_cause.highest_severity.upper(),
+            _severity_badge(root_cause.highest_severity),
             root_cause.summary,
         )
     console.print(root_table)
@@ -312,7 +322,7 @@ def _print_raw_issues(report: LintReport, *, console: Console, max_issues: int) 
     for issue in detail_issues:
         chunk_label = issue.chunk_id or issue.source or "-"
         table.add_row(
-            issue.severity.upper(),
+            _severity_badge(issue.severity),
             issue.rule_id,
             chunk_label,
             issue.reason,
@@ -378,7 +388,7 @@ def _print_root_cause_table(
         table.add_row(
             str(index),
             root_cause.title,
-            root_cause.highest_severity.upper(),
+            _severity_badge(root_cause.highest_severity),
             str(root_cause.count),
             str(root_cause.affected_chunks),
             root_cause.fix,
