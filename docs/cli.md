@@ -49,6 +49,10 @@ chunklint scan chunks.json --fail-on low
 Threshold behavior is inclusive. `--fail-on medium` fails on medium and high
 issues. `--fail-on low` fails on any issue.
 
+`--fail-on` is a gate, not a filter. The report still describes the full scan;
+the gate result tells you how many findings matched the selected threshold and
+sets the exit code.
+
 Write machine-readable output:
 
 ```bash

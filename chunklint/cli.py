@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -9,6 +10,7 @@ from rich.console import Console
 from chunklint.config import default_config_yaml
 from chunklint.engine import lint
 from chunklint.loader import load_chunks
+from chunklint.models import Issue
 from chunklint.reporter import print_report, report_json
 from chunklint.rules import ALL_RULES
 from chunklint.utils.severity import at_or_above, normalize_severity
@@ -59,19 +61,20 @@ def scan(
         output_format = output_format.lower().strip()
         if output_format not in {"text", "json"}:
             raise ValueError("--format must be text or json.")
-        if fail_on is not None:
-            normalize_severity(fail_on)
+        fail_threshold = normalize_severity(fail_on) if fail_on is not None else None
 
         chunks = load_chunks(path)
         report = lint(chunks, config_path=config)
         json_report = report_json(report)
+        gate_issues = _issues_at_or_above(report.issues, fail_threshold)
 
         if out is not None:
             out.write_text(json_report + "\n")
 
         if not quiet:
             if output_format == "json":
-                console.print(json_report)
+                console.file.write(json_report + "\n")
+                console.file.flush()
             else:
                 print_report(
                     report,
@@ -81,8 +84,10 @@ def scan(
                     examples_per_rule=examples_per_rule,
                     max_issues=max_issues,
                 )
+                if fail_threshold is not None:
+                    _print_gate_result(fail_threshold, gate_issues)
 
-        if fail_on and any(at_or_above(issue.severity, fail_on) for issue in report.issues):
+        if fail_threshold is not None and gate_issues:
             raise typer.Exit(1)
     except typer.Exit:
         raise
@@ -116,6 +121,36 @@ def rules() -> None:
     ]
     for rule_id, severity, scope in table:
         console.print(f"{severity.upper():7} {rule_id:24} {scope}")
+
+
+def _issues_at_or_above(issues: list[Issue], threshold: str | None) -> list[Issue]:
+    if threshold is None:
+        return []
+    return [issue for issue in issues if at_or_above(issue.severity, threshold)]
+
+
+def _print_gate_result(threshold: str, gate_issues: list[Issue]) -> None:
+    console.print()
+    if not gate_issues:
+        console.print(f"[green]Gate passed:[/green] --fail-on {threshold} matched 0 findings.")
+        return
+
+    console.print(
+        f"[red]Gate failed:[/red] --fail-on {threshold} matched "
+        f"{len(gate_issues)} findings at or above {threshold} "
+        f"({_severity_breakdown(gate_issues)})."
+    )
+    console.print("[dim]The report above is the full scan; --fail-on controls the exit code.[/dim]")
+
+
+def _severity_breakdown(issues: list[Issue]) -> str:
+    counts = Counter(issue.severity for issue in issues)
+    parts = [
+        f"{counts[severity]} {severity}"
+        for severity in ("high", "medium", "low")
+        if counts[severity]
+    ]
+    return ", ".join(parts)
 
 
 if __name__ == "__main__":

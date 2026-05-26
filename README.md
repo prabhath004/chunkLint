@@ -147,6 +147,10 @@ Exit codes:
 - `2`: invalid input or invalid config
 - `3`: unexpected internal error
 
+`--fail-on` is an inclusive CI gate, not a report filter. The scan report stays
+the same for a given file, and the gate result explains how many findings matched
+the selected threshold. Use `--quiet` when you only want the exit code.
+
 ### `init`
 
 Creates a default config file.
