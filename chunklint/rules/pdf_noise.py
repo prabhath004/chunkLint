@@ -31,7 +31,7 @@ class PdfNoiseRule(CrossChunkRule):
                     self.issue(
                         chunk,
                         context,
-                        reason="Chunk contains standalone page-number noise.",
+                        reason="Chunk contains a standalone page-number line.",
                         why_it_matters="PDF page artifacts add low-value tokens and can pollute retrieval.",
                         fix="Strip page numbers during PDF text cleanup.",
                     )
