@@ -124,6 +124,7 @@ def print_report(
     examples_per_rule: int = 3,
     raw: bool = False,
     focus_threshold: str | None = None,
+    elapsed: float | None = None,
 ) -> None:
     console = console or Console()
     console.print("[bold]ChunkLint Report[/bold]")
@@ -149,6 +150,7 @@ def print_report(
             console.print("[green]No issues found.[/green]")
         else:
             console.print(f"[green]No findings at or above {focus_threshold}.[/green]")
+        _print_elapsed(console, elapsed, report.chunks_scanned)
         return
 
     console.print()
@@ -201,6 +203,7 @@ def print_report(
                 "[dim]Use --verbose for examples with snippets. Use --raw for row-level "
                 "debugging; use --raw --max-issues 0 to print every row.[/dim]"
             )
+    _print_elapsed(console, elapsed, report.chunks_scanned)
 
 
 def print_gate_report(
@@ -212,6 +215,7 @@ def print_gate_report(
     verbose: bool = False,
     examples_per_rule: int = 3,
     raw: bool = False,
+    elapsed: float | None = None,
 ) -> None:
     console = console or Console()
     threshold = normalize_severity(threshold)
@@ -242,6 +246,7 @@ def print_gate_report(
         console.print()
         console.print(f"[green]No {threshold} findings.[/green]")
         console.print("[dim]Run without --fail-on for the full diagnostic report.[/dim]")
+        _print_elapsed(console, elapsed, report.chunks_scanned)
         return
 
     console.print()
@@ -279,6 +284,7 @@ def print_gate_report(
                 "[dim]Add --verbose for examples, --raw for selected rows, or run "
                 "without --fail-on for the full diagnostic report.[/dim]"
             )
+    _print_elapsed(console, elapsed, report.chunks_scanned)
 
 
 def _print_examples(
@@ -638,3 +644,19 @@ def _has_rule(issues: list[Issue], rule_id: str) -> bool:
 
 def _compact(text: str, width: int = 120) -> str:
     return shorten(" ".join(text.split()), width=width, placeholder="...")
+
+
+def _format_elapsed(elapsed: float) -> str:
+    if elapsed < 0.001:
+        return "<1ms"
+    if elapsed < 1:
+        return f"{int(round(elapsed * 1000))}ms"
+    return f"{elapsed:.2f}s"
+
+
+def _print_elapsed(console: Console, elapsed: float | None, chunks_scanned: int) -> None:
+    if elapsed is None:
+        return
+    console.print(
+        f"[dim]Scanned {chunks_scanned} chunks in {_format_elapsed(elapsed)}.[/dim]"
+    )

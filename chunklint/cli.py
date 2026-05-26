@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -62,7 +63,9 @@ def scan(
         selected_severity = normalize_severity(fail_on) if fail_on is not None else None
 
         chunks = load_chunks(path)
+        start = time.perf_counter()
         report = lint(chunks, config_path=config)
+        elapsed = time.perf_counter() - start
         json_report = report_json(report)
 
         if out is not None:
@@ -82,6 +85,7 @@ def scan(
                         raw=raw,
                         examples_per_rule=examples_per_rule,
                         max_issues=max_issues,
+                        elapsed=elapsed,
                     )
                 else:
                     print_report(
@@ -91,6 +95,7 @@ def scan(
                         raw=raw,
                         examples_per_rule=examples_per_rule,
                         max_issues=max_issues,
+                        elapsed=elapsed,
                     )
 
         if selected_severity is not None and _has_issues_with_severity(
