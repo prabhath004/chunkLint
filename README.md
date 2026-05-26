@@ -79,7 +79,8 @@ pip install chunklint
 For local development from this repository:
 
 ```bash
-cd /Users/prabhathpalakurthi/Desktop/ChunkLint
+git clone https://github.com/prabhath004/chunklint.git
+cd chunklint
 python -m pip install -e .
 ```
 
@@ -132,6 +133,8 @@ Scans JSON or JSONL chunk exports.
 chunklint scan chunks.json
 chunklint scan chunks.jsonl
 chunklint scan chunks.json --fail-on high
+chunklint scan chunks.json --fail-on high,medium
+chunklint scan chunks.json --fail-on-at-or-above medium
 chunklint scan chunks.json --format json
 chunklint scan chunks.json --format json --out report.json
 chunklint scan chunks.json --config chunklint.yml
@@ -147,12 +150,26 @@ Exit codes:
 - `2`: invalid input or invalid config
 - `3`: unexpected internal error
 
-`--fail-on` is an exact-severity CI gate. `--fail-on high` fails only on high
-findings, `--fail-on medium` fails only on medium findings, and `--fail-on low`
-fails only on low findings. In text output, the gate shows an overall
-high/medium/low lint summary plus root causes for the selected severity. JSON
-output still contains the full machine-readable scan. Use `--quiet` when you
-only want the exit code.
+### Gating findings in CI
+
+ChunkLint exposes two mutually exclusive gate flags:
+
+- `--fail-on` is an **exact-severity** gate. `--fail-on high` fails only on
+  high findings; `--fail-on medium` fails only on medium findings. You can
+  pass a comma list (`--fail-on high,medium`) to gate on several specific
+  severities at once.
+- `--fail-on-at-or-above` is a **threshold** gate. `--fail-on-at-or-above
+  medium` fails on medium **and** high findings; `--fail-on-at-or-above low`
+  fails on anything.
+
+Pick `--fail-on` when you want surgical control (e.g., block high without
+caring about medium yet). Pick `--fail-on-at-or-above` when you want the
+usual "block this and worse" CI behavior. The two flags cannot be combined,
+so the intent stays explicit in your workflow file.
+
+In text output, the gate shows an overall high/medium/low lint summary plus
+root causes for the selected severity. JSON output still contains the full
+machine-readable scan. Use `--quiet` when you only want the exit code.
 
 ### `init`
 
@@ -404,6 +421,7 @@ rule groups, root causes, recommendations, and raw issues:
 
 ```json
 {
+  "schema_version": 1,
   "summary": {
     "chunks_scanned": 3,
     "issues_found": 6,
@@ -428,6 +446,10 @@ rule groups, root causes, recommendations, and raw issues:
   ]
 }
 ```
+
+`schema_version` is the public JSON contract version. Adding fields is a
+non-breaking change; renaming or removing existing fields bumps the
+version. Consumers that pin to a major version should read this key first.
 
 ## CI
 
@@ -502,6 +524,9 @@ The `tests/` folder is the safety net for the first release:
 | `tests/test_duplicate_rule.py` | Near-duplicate detection across chunks. |
 | `tests/test_pdf_noise_rule.py` | PDF page-label noise and repeated footer/header detection. |
 | `tests/test_reporter.py` | Grouped report summaries, JSON report shape, and recommendation generation. |
+| `tests/test_config.py` | YAML config loading, auto-discovery, deep-merge overrides, and rule disabling. |
+| `tests/test_json_schema.py` | Pins the public JSON output contract so downstream consumers can rely on it. |
+| `tests/test_sdk_quiet.py` | Validates the quiet/SDK code path that returns a report without printing. |
 
 More detail is in [docs/testing.md](docs/testing.md).
 
@@ -517,12 +542,12 @@ Run linting when dev dependencies are installed:
 python -m ruff check .
 ```
 
-## Current Status
+## Project Status
 
-ChunkLint is an early v0.1.0 implementation. It already has the core SDK, CLI,
-config, rule engine, framework adapters, examples, and tests. The next useful
-steps are packaging polish, more real-world chunk fixtures, and integration
-testing against actual LangChain and LlamaIndex objects.
+ChunkLint v1.0.0 is the first stable release. The CLI, Python SDK, framework
+adapters, rules, config schema, and JSON output (`schema_version: 1`) are all
+considered public surface and follow semantic versioning. The `CHANGELOG.md`
+file tracks notable changes between releases.
 
 ## License
 
