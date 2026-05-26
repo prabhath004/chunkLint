@@ -31,6 +31,11 @@ def scan(
     ] = None,
     config: Annotated[Optional[Path], typer.Option("--config", help="Path to chunklint.yml.")] = None,
     quiet: Annotated[bool, typer.Option("--quiet", help="Suppress terminal output.")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose", help="Show every issue in text output.")] = False,
+    max_issues: Annotated[
+        int,
+        typer.Option("--max-issues", help="Detailed issues to show before truncating."),
+    ] = 20,
 ) -> None:
     """Scan exported chunks."""
     try:
@@ -51,7 +56,7 @@ def scan(
             if output_format == "json":
                 console.print(json_report)
             else:
-                print_report(report, console=console)
+                print_report(report, console=console, verbose=verbose, max_issues=max_issues)
 
         if fail_on and any(at_or_above(issue.severity, fail_on) for issue in report.issues):
             raise typer.Exit(1)
