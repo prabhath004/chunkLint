@@ -1,5 +1,5 @@
 # ChunkLint
-
+[![PyPI Downloads](https://static.pepy.tech/badge/chunklint)](https://pepy.tech/project/chunklint)
 Static analysis for RAG chunks before they enter a vector database.
 
 ChunkLint checks chunk files and in-memory Python chunk objects for structural
