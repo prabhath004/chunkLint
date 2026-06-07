@@ -396,7 +396,7 @@ Full rule and config reference: [docs/rules.md](docs/rules.md).
 
 ## Reports
 
-Terminal output is designed for humans:
+Terminal output:
 
 ```text
 ChunkLint Report
